@@ -5,8 +5,8 @@
 
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
-Version: 0.8.8
-Release: 5%{?dist}
+Version: 0.8.9
+Release: 0.2013.03.26.0%{?dist}
 License: GPLv2+
 Group: System Environment/Base
 Source0: http://freedesktop.org/software/plymouth/releases/%{name}-%{version}.tar.bz2
@@ -31,8 +31,7 @@ Obsoletes: plymouth-theme-pulser < 0.7.0-0.2009.05.08.2
 Obsoletes: plymouth-gdm-hooks < 0.8.4-0.20101119.4
 Obsoletes: plymouth-utils < 0.8.4-0.20101119.4
 
-Patch0: fix-crash.patch
-Patch1: fix-fed-up.patch
+Patch2: drm-dirty-fb.patch
 
 %description
 Plymouth provides an attractive graphical boot animation in
@@ -241,8 +240,7 @@ Plymouth. It features a small spinner on a dark background.
 
 %prep
 %setup -q
-%patch0 -p1 -b .fix-crash
-%patch1 -p1 -b .fix-fed-up
+%patch2 -p1 -b .drm-dirty
 
 # Change the default theme
 sed -i -e 's/fade-in/charge/g' src/plymouthd.defaults
@@ -500,8 +498,17 @@ fi
 %defattr(-, root, root)
 
 %changelog
-* Sun Jan 13 2013 Arkady L. Shane <ahejn@russianfedora.ru> 0.8.8-5.R
-- read branding from /etc/rfremix-release
+* Tue Apr  9 2013 Arkady L. Shane <ashejn@russianfedora.ru> 0.8.9-0.2013.03.26.0.R
+- read branding from rfremix-release
+
+* Tue Mar 26 2013 Ray Strode <rstrode@redhat.com> 0.8.9-0.2013.03.26.0
+- Update to snapshot to fix systemd vconsole issue
+
+* Fri Mar 15 2013 Dave Airlie <airlied@redhat.com> 0.8.8-7
+- drm: use dirty fb ioctl to allow plymouth work on qxl
+
+* Thu Feb 21 2013 Peter Robinson <pbrobinson@fedoraproject.org> 0.8.8-6
+- Merge newer F18 release into rawhide
 
 * Thu Dec 13 2012 Ray Strode <rstrode@redhat.com> 0.8.8-5
 - Ensure fedup gets right splash screen

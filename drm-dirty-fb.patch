@@ -1,0 +1,45 @@
+diff -up plymouth-0.8.8/src/plugins/renderers/drm/ply-renderer-generic-driver.c.flush plymouth-0.8.8/src/plugins/renderers/drm/ply-renderer-generic-driver.c
+--- plymouth-0.8.8/src/plugins/renderers/drm/ply-renderer-generic-driver.c.flush	2012-09-27 02:50:53.000000000 +1000
++++ plymouth-0.8.8/src/plugins/renderers/drm/ply-renderer-generic-driver.c	2013-03-15 10:57:33.000000000 +1000
+@@ -70,6 +70,7 @@ struct _ply_renderer_buffer
+ struct _ply_renderer_driver
+ {
+   int device_fd;
++  int need_flushes;
+   ply_hashtable_t *buffers;
+ };
+ 
+@@ -123,7 +124,7 @@ create_driver (int device_fd)
+ 
+   driver = calloc (1, sizeof (ply_renderer_driver_t));
+   driver->device_fd = device_fd;
+-
++  driver->need_flushes = 1;
+   driver->buffers = ply_hashtable_new (ply_hashtable_direct_hash,
+                                        ply_hashtable_direct_compare);
+ 
+@@ -326,10 +327,23 @@ end_flush (ply_renderer_driver_t *driver
+            uint32_t               buffer_id)
+ {
+   ply_renderer_buffer_t *buffer;
++  struct drm_clip_rect clip;
+ 
+   buffer = get_buffer_from_id (driver, buffer_id);
+-
+   assert (buffer != NULL);
++
++  if (driver->need_flushes) {
++    int ret;
++    clip.x1 = 0;
++    clip.y1 = 0;
++    clip.x2 = buffer->width;
++    clip.y2 = buffer->height;
++
++    ret = drmModeDirtyFB(driver->device_fd, buffer->id,
++			 &clip, 1);
++    if (ret == -ENOSYS)
++      driver->need_flushes = 0;
++  }
+ }
+ 
+ static void
