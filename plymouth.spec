@@ -3,10 +3,12 @@
 %define plymouth_libdir %{_libdir}
 %define plymouth_initrd_file /boot/initrd-plymouth.img
 
+%define snapshot_date .2013.08.14
+
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.8.9
-Release: 0.2013.03.26.0%{?dist}
+Release: 1%{?snapshot_date}%{?dist}
 License: GPLv2+
 Group: System Environment/Base
 Source0: http://freedesktop.org/software/plymouth/releases/%{name}-%{version}.tar.bz2
@@ -30,8 +32,6 @@ Obsoletes: plymouth-plugin-pulser < 0.7.0-0.2009.05.08.2
 Obsoletes: plymouth-theme-pulser < 0.7.0-0.2009.05.08.2
 Obsoletes: plymouth-gdm-hooks < 0.8.4-0.20101119.4
 Obsoletes: plymouth-utils < 0.8.4-0.20101119.4
-
-Patch2: drm-dirty-fb.patch
 
 %description
 Plymouth provides an attractive graphical boot animation in
@@ -240,7 +240,6 @@ Plymouth. It features a small spinner on a dark background.
 
 %prep
 %setup -q
-%patch2 -p1 -b .drm-dirty
 
 # Change the default theme
 sed -i -e 's/fade-in/charge/g' src/plymouthd.defaults
@@ -390,11 +389,8 @@ fi
 %{_localstatedir}/spool/plymouth
 %{_mandir}/man?/*
 %ghost %{_localstatedir}/lib/plymouth/boot-duration
-%if 0%{?fedora} > 17 || 0%{?rhel} > 6
-/lib/systemd/system/*
-%else
-%{_prefix}/lib/systemd/system/plymouth-*.service
-%endif
+%{_prefix}/lib/systemd/system/*
+%{_prefix}/lib/systemd/system/
 
 %files devel
 %defattr(-, root, root)
@@ -498,14 +494,20 @@ fi
 %defattr(-, root, root)
 
 %changelog
-* Tue Apr  9 2013 Arkady L. Shane <ashejn@russianfedora.ru> 0.8.9-0.2013.03.26.0.R
-- read branding from rfremix-release
+* Mon Oct 21 2013 Arkady L. Shane <ashejn@russianfedora.ru> - 0.8.9-1.2013.08.14.R
+- read branging from rfremix-release
+
+* Sun Oct 06 2013 Kalev Lember <kalevlember@gmail.com> - 0.8.9-1.2013.08.14
+- Make sure the release number compares higher than the previous builds
+
+* Wed Aug 14 2013 Ray Strode <rstrode@redhat.com> 0.8.9-0.1.2013.08.14.0
+- Update to snapshot to fix system units
+
+* Sun Aug 04 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.8.9-0.2014.03.26.0
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
 
 * Tue Mar 26 2013 Ray Strode <rstrode@redhat.com> 0.8.9-0.2013.03.26.0
 - Update to snapshot to fix systemd vconsole issue
-
-* Fri Mar 15 2013 Dave Airlie <airlied@redhat.com> 0.8.8-7
-- drm: use dirty fb ioctl to allow plymouth work on qxl
 
 * Thu Feb 21 2013 Peter Robinson <pbrobinson@fedoraproject.org> 0.8.8-6
 - Merge newer F18 release into rawhide
