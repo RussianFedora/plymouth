@@ -6,7 +6,7 @@
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.8.9
-Release: 0.2013.03.26.0%{?dist}
+Release: 0.2013.03.26.1%{?dist}
 License: GPLv2+
 Group: System Environment/Base
 Source0: http://freedesktop.org/software/plymouth/releases/%{name}-%{version}.tar.bz2
@@ -32,6 +32,7 @@ Obsoletes: plymouth-gdm-hooks < 0.8.4-0.20101119.4
 Obsoletes: plymouth-utils < 0.8.4-0.20101119.4
 
 Patch2: drm-dirty-fb.patch
+Patch3: dont-timeout-waiting.patch
 
 %description
 Plymouth provides an attractive graphical boot animation in
@@ -241,6 +242,7 @@ Plymouth. It features a small spinner on a dark background.
 %prep
 %setup -q
 %patch2 -p1 -b .drm-dirty
+%patch3 -p1 -b .dont-timeout-waiting
 
 # Change the default theme
 sed -i -e 's/fade-in/charge/g' src/plymouthd.defaults
@@ -498,6 +500,10 @@ fi
 %defattr(-, root, root)
 
 %changelog
+* Thu Oct 31 2013 Ray Strode <rstrode@redhat.com> 0.8.9-0.2013.03.26.1.R
+- Don't timeout plymouth quit waiting
+  Related: #967521
+
 * Tue Apr  9 2013 Arkady L. Shane <ashejn@russianfedora.ru> 0.8.9-0.2013.03.26.0.R
 - read branding from rfremix-release
 
