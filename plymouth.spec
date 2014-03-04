@@ -8,7 +8,7 @@
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.8.9
-Release: 3%{?snapshot_date}%{?dist}
+Release: 4%{?snapshot_date}%{?dist}
 License: GPLv2+
 Group: System Environment/Base
 Source0: http://freedesktop.org/software/plymouth/releases/%{name}-%{version}.tar.bz2
@@ -34,6 +34,7 @@ Obsoletes: plymouth-gdm-hooks < 0.8.4-0.20101119.4
 Obsoletes: plymouth-utils < 0.8.4-0.20101119.4
 
 Patch0: dont-timeout-waiting.patch
+Patch1: sysfs-tty-fix.patch
 
 %description
 Plymouth provides an attractive graphical boot animation in
@@ -243,6 +244,7 @@ Plymouth. It features a small spinner on a dark background.
 %prep
 %setup -q
 %patch0 -p1 -b .dont-timeout-waiting
+%patch1 -p1 -b .sysfs-tty-fix
 
 # Change the default theme
 sed -i -e 's/fade-in/charge/g' src/plymouthd.defaults
@@ -496,6 +498,9 @@ fi
 %defattr(-, root, root)
 
 %changelog
+* Thu Feb 20 2014 Ray Strode <rstrode@redhat.com> 0.8.9-4.2013.08.14.R
+- Fix splash after change in /sys/class/tty/console/active
+
 * Thu Oct 31 2013 Ray Strode <rstrode@redhat.com> 0.8.9-3.2013.08.14.R
 - Don't timeout plymouth quit waiting
   Related: #967521
