@@ -11,7 +11,7 @@ Version: 0.8.9
 Release: 4%{?snapshot_date}%{?dist}
 License: GPLv2+
 Group: System Environment/Base
-Source0: http://freedesktop.org/software/plymouth/releases/%{name}-%{version}.tar.bz2
+Source0: %{name}-%{version}.tar.bz2
 Source1: boot-duration
 Source2: charge.plymouth
 
