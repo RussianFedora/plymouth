@@ -8,7 +8,7 @@
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.8.9
-Release: 4%{?snapshot_date}%{?dist}
+Release: 6%{?snapshot_date}%{?dist}
 License: GPLv2+
 Group: System Environment/Base
 Source0: %{name}-%{version}.tar.bz2
@@ -18,7 +18,6 @@ Source2: charge.plymouth
 URL: http://www.freedesktop.org/wiki/Software/Plymouth
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-Requires: system-logos
 Requires(post): plymouth-scripts
 Requires: initscripts >= 8.83-1
 Conflicts: filesystem < 3
@@ -67,6 +66,7 @@ used by Plymouth.
 Summary: Plymouth graphics libraries
 Group: Development/Libraries
 Requires: %{name}-core-libs = %{version}-%{release}
+Requires: system-logos
 Obsoletes: %{name}-libs < %{version}-%{release}
 Provides: %{name}-libs = %{version}-%{release}
 BuildRequires: libpng-devel
@@ -498,6 +498,9 @@ fi
 %defattr(-, root, root)
 
 %changelog
+* Thu Jun 26 2014 Arkady L. Shane <ashejn@russianfedora.pro> 0.8.9-6.2013.08.14.R
+- sync with upstream
+
 * Thu Feb 20 2014 Ray Strode <rstrode@redhat.com> 0.8.9-4.2013.08.14.R
 - Fix splash after change in /sys/class/tty/console/active
 
@@ -1040,7 +1043,7 @@ fi
 - Add the ability to show text prompts in graphical plugin
 - Fix crasher for users with encrypted disks
 
-* Fri Aug 23 2008 Ray Strode <rstrode@redhat.com> 0.6.0-0.2008.08.22
+* Fri Aug 24 2008 Ray Strode <rstrode@redhat.com> 0.6.0-0.2008.08.22
 - Update to latest snapshot
 
 * Wed Aug 13 2008 Ray Strode <rstrode@redhat.com> 0.5.0-20.2008.08.13
@@ -1115,7 +1118,7 @@ fi
   needs work.  We need to separate distro default from
   user choice.
 
-* Thu Jul  1 2008 Ray Strode <rstrode@redhat.com> - 0.5.0-1
+* Tue Jul  1 2008 Ray Strode <rstrode@redhat.com> - 0.5.0-1
 - Add new client "ask-for-password" command which feeds
   the user input to a program instead of standard output,
   and loops when the program returns non-zero exit status.
