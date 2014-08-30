@@ -8,7 +8,7 @@
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.8.9
-Release: 6%{?snapshot_date}%{?dist}
+Release: 7%{?snapshot_date}%{?dist}
 License: GPLv2+
 Group: System Environment/Base
 Source0: %{name}-%{version}.tar.bz2
@@ -498,6 +498,9 @@ fi
 %defattr(-, root, root)
 
 %changelog
+* Sat Aug 30 2014 Arkady L. Shane <ashejn@russianfedora.pro> 0.8.9-7.2013.08.14.R
+- rebuilt
+
 * Thu Jun 26 2014 Arkady L. Shane <ashejn@russianfedora.pro> 0.8.9-6.2013.08.14.R
 - sync with upstream
 
