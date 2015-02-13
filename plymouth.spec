@@ -8,7 +8,7 @@
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.8.9
-Release: 7.1%{?snapshot_date}%{?dist}
+Release: 7%{?snapshot_date}%{?dist}
 License: GPLv2+
 Group: System Environment/Base
 Source0: %{name}-%{version}.tar.bz2
@@ -34,8 +34,6 @@ Obsoletes: plymouth-utils < 0.8.4-0.20101119.4
 
 Patch0: dont-timeout-waiting.patch
 Patch1: sysfs-tty-fix.patch
-# PATCH-OPENSUSE -- Handle correctly multiple displays with different sizes
-Patch2: plymouth-fix-window-size.patch
 
 %description
 Plymouth provides an attractive graphical boot animation in
@@ -247,7 +245,6 @@ Plymouth. It features a small spinner on a dark background.
 %setup -q
 %patch0 -p1 -b .dont-timeout-waiting
 %patch1 -p1 -b .sysfs-tty-fix
-%patch2 -p1 -b .fix-window-size
 
 # Change the default theme
 sed -i -e 's/fade-in/charge/g' src/plymouthd.defaults
@@ -501,9 +498,6 @@ fi
 %defattr(-, root, root)
 
 %changelog
-* Fri Feb 13 2015 Arkady L. Shane <ashejn@russianfedora.pro> 0.8.9-7.1.2013.08.14.R
-- Handle correctly multiple displays with different sizes
-
 * Sat Aug 30 2014 Arkady L. Shane <ashejn@russianfedora.pro> 0.8.9-7.2013.08.14.R
 - rebuilt
 
