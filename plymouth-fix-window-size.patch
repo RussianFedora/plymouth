@@ -1,0 +1,36 @@
+From: Jeff Mahoney <jeffm@suse.com>
+Subject: plymouth/script: Fix window size with multiple heads
+
+ Plymouth "zooms" in on smaller displays when multiple displays are used,
+ but the script splash plugin defines the window size as the smallest
+ of the displays. When using a sprite as a background image, the wrong
+ size is used which leaves large chunks of the screen unused.
+
+ This patch uses the largest display as the window size, which allows
+ it to be appopriately cropped on smaller displays.
+
+Signed-off-by: Jeff Mahoney <jeffm@suse.com>
+---
+ src/plugins/splash/script/script-lib-sprite.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+--- a/src/plugins/splash/script/script-lib-sprite.c
++++ b/src/plugins/splash/script/script-lib-sprite.c
+@@ -233,7 +233,7 @@ static script_return_t sprite_window_get
+       if (width == 0)
+         width = ply_pixel_display_get_width (display->pixel_display);
+       else
+-        width = MIN (width, ply_pixel_display_get_width (display->pixel_display));
++        width = MAX (width, ply_pixel_display_get_width (display->pixel_display));
+     }
+   return script_return_obj (script_obj_new_number (width));
+ }
+@@ -273,7 +273,7 @@ static script_return_t sprite_window_get
+       if (height == 0)
+         height = ply_pixel_display_get_height (display->pixel_display);
+       else
+-        height = MIN (height, ply_pixel_display_get_height (display->pixel_display));
++        height = MAX (height, ply_pixel_display_get_height (display->pixel_display));
+     }
+   return script_return_obj (script_obj_new_number (height));
+ }
