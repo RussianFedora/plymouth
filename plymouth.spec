@@ -8,7 +8,7 @@
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.8.9
-Release: 10%{?snapshot_date}%{?dist}
+Release: 11%{?snapshot_date}%{?dist}
 License: GPLv2+
 Group: System Environment/Base
 Source0: %{name}-%{version}.tar.bz2
@@ -35,6 +35,7 @@ Obsoletes: plymouth-utils < 0.8.4-0.20101119.4
 Patch0: dont-timeout-waiting.patch
 Patch1: sysfs-tty-fix.patch
 Patch2: fix-theme-override.patch
+Patch3: fix-updates.patch
 
 %description
 Plymouth provides an attractive graphical boot animation in
@@ -247,6 +248,7 @@ Plymouth. It features a small spinner on a dark background.
 %patch0 -p1 -b .dont-timeout-waiting
 %patch1 -p1 -b .sysfs-tty-fix
 %patch2 -p1 -b .fix-theme-override
+%patch3 -p1 -b .fix-updates
 
 # Change the default theme
 sed -i -e 's/fade-in/charge/g' src/plymouthd.defaults
@@ -500,6 +502,10 @@ fi
 %defattr(-, root, root)
 
 %changelog
+* Mon Oct 26 2015 Ray Strode <rstrode@redhat.com> 0.8.9-11.2013.08.14.R
+- Fix updates with script and spinner themes
+  Resolves: #1267949
+
 * Thu Jun 18 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.8.9-10.2013.08.14.R
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_23_Mass_Rebuild
 
