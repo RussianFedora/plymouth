@@ -8,7 +8,7 @@
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.8.9
-Release: 9%{?snapshot_date}%{?dist}
+Release: 10%{?snapshot_date}%{?dist}
 License: GPLv2+
 Group: System Environment/Base
 Source0: %{name}-%{version}.tar.bz2
@@ -35,6 +35,7 @@ Obsoletes: plymouth-utils < 0.8.4-0.20101119.4
 Patch0: dont-timeout-waiting.patch
 Patch1: sysfs-tty-fix.patch
 Patch2: fix-theme-override.patch
+Patch3: fix-updates.patch
 
 %description
 Plymouth provides an attractive graphical boot animation in
@@ -247,6 +248,7 @@ Plymouth. It features a small spinner on a dark background.
 %patch0 -p1 -b .dont-timeout-waiting
 %patch1 -p1 -b .sysfs-tty-fix
 %patch2 -p1 -b .fix-theme-override
+%patch3 -p1 -b .fix-updates
 
 # Change the default theme
 sed -i -e 's/fade-in/charge/g' src/plymouthd.defaults
@@ -500,6 +502,16 @@ fi
 %defattr(-, root, root)
 
 %changelog
+* Mon Oct 26 2015 Ray Strode <rstrode@redhat.com> 0.8.9-10.2013.08.14.R
+- Fix updates with script and spinner themes
+  Resolves: #1267949
+
+* Wed May 20 2015 Will Woods <wwoods@redhat.com> 0.8.9-9.2013.08.14.R
+- Fix theme override using PLYMOUTH_THEME_NAME (#1223344)
+
+* Sat Feb 21 2015 Till Maas <opensource@till.name> - 0.8.9-8.2013.08.14.R
+- Rebuilt for Fedora 23 Change
+  https://fedoraproject.org/wiki/Changes/Harden_all_packages_with_position-independent_code
 * Sat Aug 30 2014 Arkady L. Shane <ashejn@russianfedora.pro> 0.8.9-7.2013.08.14.R
 - rebuilt
 
