@@ -8,34 +8,30 @@
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.8.9
-Release: 11%{?snapshot_date}%{?dist}
+Release: 17%{?snapshot_date}%{?dist}
 License: GPLv2+
+URL: http://www.freedesktop.org/wiki/Software/Plymouth
 Group: System Environment/Base
-Source0: %{name}-%{version}.tar.bz2
+
+Source0: http://freedesktop.org/software/plymouth/releases/%{name}-%{version}.tar.bz2
 Source1: boot-duration
 Source2: charge.plymouth
-
-URL: http://www.freedesktop.org/wiki/Software/Plymouth
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-
-Requires(post): plymouth-scripts
-Requires: initscripts >= 8.83-1
-Conflicts: filesystem < 3
-Conflicts: systemd < 185-3
-
-BuildRequires: pkgconfig(libdrm)
-BuildRequires: kernel-headers
-
-Obsoletes: plymouth-text-and-details-only < %{version}-%{release}
-Obsoletes: plymouth-plugin-pulser < 0.7.0-0.2009.05.08.2
-Obsoletes: plymouth-theme-pulser < 0.7.0-0.2009.05.08.2
-Obsoletes: plymouth-gdm-hooks < 0.8.4-0.20101119.4
-Obsoletes: plymouth-utils < 0.8.4-0.20101119.4
+Source3: plymouth-update-initrd
 
 Patch0: dont-timeout-waiting.patch
 Patch1: sysfs-tty-fix.patch
 Patch2: fix-theme-override.patch
 Patch3: fix-updates.patch
+
+BuildRequires: pkgconfig(libdrm)
+BuildRequires: kernel-headers
+BuildRequires: libpng-devel
+BuildRequires: pkgconfig(gtk+-2.0)
+BuildRequires: pango-devel >= 1.21.0
+BuildRequires: cairo-devel
+
+Requires(post): plymouth-scripts
+Requires: initscripts >= 8.83-1
 
 %description
 Plymouth provides an attractive graphical boot animation in
@@ -46,11 +42,6 @@ after boot.
 %package system-theme
 Summary: Plymouth default theme
 Group: System Environment/Base
-Obsoletes: rhgb < 1:10.0.0
-Provides: rhgb = 1:10.0.0
-Obsoletes: %{name}-system-plugin <  %{version}-%{release}
-Provides: %{name}-system-plugin = %{version}-%{release}
-Provides: rhgb = 1:10.0.0
 Requires: plymouth(system-theme) = %{version}-%{release}
 
 %description system-theme
@@ -69,9 +60,6 @@ Summary: Plymouth graphics libraries
 Group: Development/Libraries
 Requires: %{name}-core-libs = %{version}-%{release}
 Requires: system-logos
-Obsoletes: %{name}-libs < %{version}-%{release}
-Provides: %{name}-libs = %{version}-%{release}
-BuildRequires: libpng-devel
 
 %description graphics-libs
 This package contains the libply-splash-graphics library
@@ -82,7 +70,6 @@ Summary: Libraries and headers for writing Plymouth splash plugins
 Group: Development/Libraries
 Requires: %{name} = %{version}-%{release}
 Requires: pkgconfig
-BuildRequires: pkgconfig(gtk+-2.0)
 
 %description devel
 This package contains the libply and libplybootsplash libraries
@@ -101,9 +88,7 @@ the system.
 Summary: Plymouth label plugin
 Group: System Environment/Base
 Requires: %{name} = %{version}-%{release}
-Requires: %{name}-libs = %{version}-%{release}
-BuildRequires: pango-devel >= 1.21.0
-BuildRequires: cairo-devel
+Requires: %{name}-graphics-libs = %{version}-%{release}
 
 %description plugin-label
 This package contains the label control plugin for
@@ -114,7 +99,7 @@ graphical boot splashes using pango and cairo.
 Summary: Plymouth "Fade-Throbber" plugin
 Group: System Environment/Base
 Requires: %{name} = %{version}-%{release}
-Requires: %{name}-libs = %{version}-%{release}
+Requires: %{name}-graphics-libs = %{version}-%{release}
 
 %description plugin-fade-throbber
 This package contains the "Fade-In" boot splash plugin for
@@ -126,8 +111,6 @@ Summary: Plymouth "Fade-In" theme
 Group: System Environment/Base
 Requires: %{name}-plugin-fade-throbber = %{version}-%{release}
 Requires(post): plymouth-scripts
-Obsoletes: plymouth-plugin-fade-in <= 0.7.0-0.2009.05.08.2
-Provides: plymouth-plugin-fade-in = 0.7.0-0.2009.05.08.2
 
 %description theme-fade-in
 This package contains the "Fade-In" boot splash theme for
@@ -138,7 +121,7 @@ while stars twinkle around the logo during system boot up.
 Summary: Plymouth "Throbgress" plugin
 Group: System Environment/Base
 Requires: %{name} = %{version}-%{release}
-Requires: %{name}-libs = %{version}-%{release}
+Requires: %{name}-graphics-libs = %{version}-%{release}
 Requires: plymouth-plugin-label
 
 %description plugin-throbgress
@@ -152,8 +135,6 @@ Summary: Plymouth "Spinfinity" theme
 Group: System Environment/Base
 Requires: %{name}-plugin-throbgress = %{version}-%{release}
 Requires(post): plymouth-scripts
-Obsoletes: plymouth-plugin-spinfinity <= 0.7.0-0.2009.05.08.2
-Provides: plymouth-plugin-spinfinity = 0.7.0-0.2009.05.08.2
 
 %description theme-spinfinity
 This package contains the "Spinfinity" boot splash theme for
@@ -164,7 +145,7 @@ spins in the shape of an infinity sign.
 Summary: Plymouth "space-flares" plugin
 Group: System Environment/Base
 Requires: %{name} = %{version}-%{release}
-Requires: %{name}-libs = %{version}-%{release}
+Requires: %{name}-graphics-libs = %{version}-%{release}
 Requires: plymouth-plugin-label
 
 %description plugin-space-flares
@@ -176,10 +157,6 @@ Summary: Plymouth "Solar" theme
 Group: System Environment/Base
 Requires: %{name}-plugin-space-flares = %{version}-%{release}
 Requires(post): plymouth-scripts
-Obsoletes: plymouth-plugin-solar <= 0.7.0-0.2009.05.08.2
-Provides: plymouth-plugin-solar = 0.7.0-0.2009.05.08.2
-# We require this to fix upgrades (see bug 499940).
-Requires: plymouth-system-theme
 
 %description theme-solar
 This package contains the "Solar" boot splash theme for
@@ -189,7 +166,7 @@ Plymouth. It features a blue flamed sun with animated solar flares.
 Summary: Plymouth "two-step" plugin
 Group: System Environment/Base
 Requires: %{name} = %{version}-%{release}
-Requires: %{name}-libs = %{version}-%{release}
+Requires: %{name}-graphics-libs = %{version}-%{release}
 Requires: plymouth-plugin-label
 
 %description plugin-two-step
@@ -214,7 +191,7 @@ and finally burst into full form.
 Summary: Plymouth "script" plugin
 Group: System Environment/Base
 Requires: %{name} = %{version}-%{release}
-Requires: %{name}-libs = %{version}-%{release}
+Requires: %{name}-graphics-libs = %{version}-%{release}
 
 %description plugin-script
 This package contains the "script" boot splash plugin for
@@ -270,20 +247,19 @@ sed -i -e 's/fade-in/charge/g' src/plymouthd.defaults
 make
 
 %install
-rm -rf $RPM_BUILD_ROOT
-
 make install DESTDIR=$RPM_BUILD_ROOT
 
 # Glow isn't quite ready for primetime
 rm -rf $RPM_BUILD_ROOT%{_datadir}/plymouth/glow/
 rm -f $RPM_BUILD_ROOT%{_libdir}/plymouth/glow.so
 
-find $RPM_BUILD_ROOT -name '*.a' -exec rm -f {} \;
-find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} \;
+find $RPM_BUILD_ROOT -name '*.a' -delete
+find $RPM_BUILD_ROOT -name '*.la' -delete
 
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/lib/plymouth
 cp $RPM_SOURCE_DIR/boot-duration $RPM_BUILD_ROOT%{_datadir}/plymouth/default-boot-duration
 cp $RPM_SOURCE_DIR/boot-duration $RPM_BUILD_ROOT%{_localstatedir}/lib/plymouth
+cp -f $RPM_SOURCE_DIR/plymouth-update-initrd $RPM_BUILD_ROOT%{_libexecdir}/plymouth
 
 # Add charge, our new default
 mkdir -p $RPM_BUILD_ROOT%{_datadir}/plymouth/themes/charge
@@ -292,9 +268,6 @@ cp $RPM_BUILD_ROOT%{_datadir}/plymouth/themes/glow/{box,bullet,entry,lock}.png $
 
 # Drop glow, it's not very Fedora-y
 rm -rf $RPM_BUILD_ROOT%{_datadir}/plymouth/themes/glow
-
-%clean
-rm -rf $RPM_BUILD_ROOT
 
 %post
 [ -f %{_localstatedir}/lib/plymouth/boot-duration ] || cp -f %{_datadir}/plymouth/default-boot-duration %{_localstatedir}/lib/plymouth/boot-duration
@@ -371,8 +344,8 @@ if [ $1 -eq 0 ]; then
 fi
 
 %files
-%defattr(-, root, root)
-%doc AUTHORS NEWS README
+%license COPYING
+%doc AUTHORS README
 %dir %{_datadir}/plymouth
 %dir %{_datadir}/plymouth/themes
 %dir %{_datadir}/plymouth/themes/details
@@ -387,7 +360,6 @@ fi
 %{_bindir}/plymouth
 %{_libdir}/plymouth/details.so
 %{_libdir}/plymouth/text.so
-%{_libdir}/plymouth/renderers/drm*
 %{_libdir}/plymouth/renderers/frame-buffer*
 %{_datadir}/plymouth/default-boot-duration
 %{_datadir}/plymouth/themes/details/details.plymouth
@@ -401,7 +373,6 @@ fi
 %{_prefix}/lib/systemd/system/
 
 %files devel
-%defattr(-, root, root)
 %{plymouth_libdir}/libply.so
 %{plymouth_libdir}/libply-splash-core.so
 %{_libdir}/libply-boot-client.so
@@ -413,33 +384,28 @@ fi
 %{_includedir}/plymouth-1
 
 %files core-libs
-%defattr(-, root, root)
 %{plymouth_libdir}/libply.so.*
 %{plymouth_libdir}/libply-splash-core.so.*
 %{_libdir}/libply-boot-client.so.*
 %dir %{_libdir}/plymouth
 
 %files graphics-libs
-%defattr(-, root, root)
+%{_libdir}/plymouth/renderers/drm*
 %{_libdir}/libply-splash-graphics.so.*
 
 %files scripts
-%defattr(-, root, root)
 %{_sbindir}/plymouth-set-default-theme
 %{_libexecdir}/plymouth/plymouth-update-initrd
 %{_libexecdir}/plymouth/plymouth-generate-initrd
 %{_libexecdir}/plymouth/plymouth-populate-initrd
 
 %files plugin-label
-%defattr(-, root, root)
 %{_libdir}/plymouth/label.so
 
 %files plugin-fade-throbber
-%defattr(-, root, root)
 %{_libdir}/plymouth/fade-throbber.so
 
 %files theme-fade-in
-%defattr(-, root, root)
 %dir %{_datadir}/plymouth/themes/fade-in
 %{_datadir}/plymouth/themes/fade-in/bullet.png
 %{_datadir}/plymouth/themes/fade-in/entry.png
@@ -448,17 +414,14 @@ fi
 %{_datadir}/plymouth/themes/fade-in/fade-in.plymouth
 
 %files theme-spinner
-%defattr(-, root, root)
 %dir %{_datadir}/plymouth/themes/spinner
 %{_datadir}/plymouth/themes/spinner/*.png
 %{_datadir}/plymouth/themes/spinner/spinner.plymouth
 
 %files plugin-throbgress
-%defattr(-, root, root)
 %{_libdir}/plymouth/throbgress.so
 
 %files theme-spinfinity
-%defattr(-, root, root)
 %dir %{_datadir}/plymouth/themes/spinfinity
 %{_datadir}/plymouth/themes/spinfinity/box.png
 %{_datadir}/plymouth/themes/spinfinity/bullet.png
@@ -468,69 +431,85 @@ fi
 %{_datadir}/plymouth/themes/spinfinity/spinfinity.plymouth
 
 %files plugin-space-flares
-%defattr(-, root, root)
 %{_libdir}/plymouth/space-flares.so
 
 %files theme-solar
-%defattr(-, root, root)
 %dir %{_datadir}/plymouth/themes/solar
 %{_datadir}/plymouth/themes/solar/*.png
 %{_datadir}/plymouth/themes/solar/solar.plymouth
 
 %files plugin-two-step
-%defattr(-, root, root)
 %{_libdir}/plymouth/two-step.so
 
 %files theme-charge
-%defattr(-, root, root)
 %dir %{_datadir}/plymouth/themes/charge
 %{_datadir}/plymouth/themes/charge/*.png
 %{_datadir}/plymouth/themes/charge/charge.plymouth
 
 %files plugin-script
-%defattr(-, root, root)
 %{_libdir}/plymouth/script.so
 
 %files theme-script
-%defattr(-, root, root)
 %dir %{_datadir}/plymouth/themes/script
 %{_datadir}/plymouth/themes/script/*.png
 %{_datadir}/plymouth/themes/script/script.script
 %{_datadir}/plymouth/themes/script/script.plymouth
 
 %files system-theme
-%defattr(-, root, root)
 
 %changelog
-* Mon Oct 26 2015 Ray Strode <rstrode@redhat.com> 0.8.9-11.2013.08.14.R
+* Wed Mar 16 2016 Arkady L. Shane <ashejn@russianfedora.ru> - 0.8.9-17.2013.08.14.R
+- read branding from rfremix-release
+
+* Thu Feb 04 2016 Fedora Release Engineering <releng@fedoraproject.org> - 0.8.9-17.2013.08.14
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_24_Mass_Rebuild
+
+* Sun Nov 15 2015 Ray Strode <rstrode@redhat.com> 0.8.9-16.2013.08.14
+- Fix plymouth-update-initrd script
+
+* Mon Oct 26 2015 Ray Strode <rstrode@redhat.com> 0.8.9-15.2013.08.15
 - Fix updates with script and spinner themes
   Resolves: #1267949
 
-* Thu Jun 18 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.8.9-10.2013.08.14.R
+* Mon Aug 24 2015 Kalev Lember <klember@redhat.com> 0.8.9-13.2013.08.14
+- Fix a typo in Requires
+
+* Mon Aug 24 2015 Peter Robinson <pbrobinson@fedoraproject.org> 0.8.9-12.2013.08.14
+- Fix Requires for various libs subpackages
+
+* Sun Aug 23 2015 Peter Robinson <pbrobinson@fedoraproject.org> 0.8.9-11.2013.08.14
+- Use %%license
+- Cleanup spec
+- Move drm render driver to graphics-libs sub package
+
+* Thu Jun 18 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.8.9-10.2013.08.14
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_23_Mass_Rebuild
 
-* Wed May 20 2015 Will Woods <wwoods@redhat.com> 0.8.9-9.2013.08.14.R
+* Wed May 20 2015 Will Woods <wwoods@redhat.com> 0.8.9-9.2013.08.14
 - Fix theme override using PLYMOUTH_THEME_NAME (#1223344)
 
-* Sat Feb 21 2015 Till Maas <opensource@till.name> - 0.8.9-8.2013.08.14.R
+* Sat Feb 21 2015 Till Maas <opensource@till.name> - 0.8.9-8.2013.08.14
 - Rebuilt for Fedora 23 Change
   https://fedoraproject.org/wiki/Changes/Harden_all_packages_with_position-independent_code
 
-* Sat Aug 30 2014 Arkady L. Shane <ashejn@russianfedora.pro> 0.8.9-7.2013.08.14.R
-- rebuilt
+* Sun Aug 17 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.8.9-7.2013.08.14
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_21_22_Mass_Rebuild
 
-* Thu Jun 26 2014 Arkady L. Shane <ashejn@russianfedora.pro> 0.8.9-6.2013.08.14.R
-- sync with upstream
+* Sat Jun 07 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.8.9-6.2013.08.14
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_21_Mass_Rebuild
 
-* Thu Feb 20 2014 Ray Strode <rstrode@redhat.com> 0.8.9-4.2013.08.14.R
+* Sat May 31 2014 Peter Robinson <pbrobinson@fedoraproject.org> 0.8.9-4.2013.08.15
+- Move system-logos dep to graphics-libs (no use on text/serial console minimal installs)
+
+* Thu Feb 20 2014 Ray Strode <rstrode@redhat.com> 0.8.9-4.2013.08.14
 - Fix splash after change in /sys/class/tty/console/active
 
-* Thu Oct 31 2013 Ray Strode <rstrode@redhat.com> 0.8.9-3.2013.08.14.R
+* Thu Oct 31 2013 Ray Strode <rstrode@redhat.com> 0.8.9-3.2013.08.14
 - Don't timeout plymouth quit waiting
   Related: #967521
 
-* Mon Oct 21 2013 Arkady L. Shane <ashejn@russianfedora.ru> - 0.8.9-1.2013.08.14.R
-- read branging from rfremix-release
+* Wed Oct 16 2013 Ray Strode <rstrode@redhat.com> 0.8.9-2.2013.08.14
+- Drop rhgb-client compat link
 
 * Sun Oct 06 2013 Kalev Lember <kalevlember@gmail.com> - 0.8.9-1.2013.08.14
 - Make sure the release number compares higher than the previous builds
