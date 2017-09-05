@@ -9,7 +9,7 @@
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.9.3
-Release: 0.7.%{?snapshot_date}git%{?snapshot_hash}%{?dist}.R
+Release: 0.9.%{?snapshot_date}git%{?snapshot_hash}%{?dist}.R
 License: GPLv2+
 URL: http://www.freedesktop.org/wiki/Software/Plymouth
 Group: System Environment/Base
@@ -445,10 +445,13 @@ fi
 %files system-theme
 
 %changelog
-* Thu Mar  9 2017 Arkady L. Shane <ashejn@russianfedora.pro> - - 0.9.3-0.7.git.R
+* Tue Sep  5 2017 Arkady L. Shane <ashejn@russianfedora.pro> - 0.9.3-0.9.git.R
 - bump release to rebuild
 
-* Wed Sep 28 2016 Arkady L. Shane <ashejn@russianfedora.pro> - - 0.9.3-0.6.git.R
+* Thu Mar  9 2017 Arkady L. Shane <ashejn@russianfedora.pro> - 0.9.3-0.7.git.R
+- bump release to rebuild
+
+* Wed Sep 28 2016 Arkady L. Shane <ashejn@russianfedora.pro> - 0.9.3-0.6.git.R
 - read branding from rfremix-release
 
 * Mon Jun 20 2016 Ray Strode <rstrode@redhat.com> - 0.9.3-0.6.git
