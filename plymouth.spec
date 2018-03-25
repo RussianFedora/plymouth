@@ -458,7 +458,7 @@ fi
 * Tue Nov 28 2017 Björn Esser <besser82@fedoraproject.org> - 0.9.3-1
 - Update to 0.9.3 release
 - Reduce ShowDelay to 0 (rhbz#1518037)
-- Change %define to %global
+- Change %%define to %global
 
 * Tue Sep  5 2017 Arkady L. Shane <ashejn@russianfedora.pro> - 0.9.3-0.9.git.R
 - bump release to rebuild
