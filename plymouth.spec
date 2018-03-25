@@ -9,7 +9,7 @@
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.9.3
-Release: 0.9.%{?snapshot_date}git%{?snapshot_hash}%{?dist}.R
+Release: 3%{?dist}.R
 License: GPLv2+
 URL: http://www.freedesktop.org/wiki/Software/Plymouth
 Group: System Environment/Base
@@ -445,6 +445,21 @@ fi
 %files system-theme
 
 %changelog
+* Fri Feb 09 2018 Igor Gnatenko <ignatenkobrain@fedoraproject.org> - 0.9.3-4.R
+- Escape macros in %changelog
+
+* Fri Feb 09 2018 Fedora Release Engineering <releng@fedoraproject.org> - 0.9.3-3.R
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
+
+* Tue Nov 28 2017 Ray Strode - 0.9.3-2.R
+- Bump ShowDelay back up to 5
+  Related: #1518037
+
+* Tue Nov 28 2017 Björn Esser <besser82@fedoraproject.org> - 0.9.3-1
+- Update to 0.9.3 release
+- Reduce ShowDelay to 0 (rhbz#1518037)
+- Change %define to %global
+
 * Tue Sep  5 2017 Arkady L. Shane <ashejn@russianfedora.pro> - 0.9.3-0.9.git.R
 - bump release to rebuild
 
@@ -596,7 +611,7 @@ fi
 - Rebuild without libkms
 
 * Wed Jun 06 2012 Ray Strode <rstrode@redhat.com> 0.8.5.1-2
-- Add %{_prefix} to systemd service path
+- Add %%{_prefix} to systemd service path
 
 * Wed Jun 06 2012 Ray Strode <rstrode@redhat.com> 0.8.5.1-1
 - Update to latest release
@@ -1061,7 +1076,7 @@ fi
 - Add the ability to show text prompts in graphical plugin
 - Fix crasher for users with encrypted disks
 
-* Fri Aug 24 2008 Ray Strode <rstrode@redhat.com> 0.6.0-0.2008.08.22
+* Fri Aug 22 2008 Ray Strode <rstrode@redhat.com> 0.6.0-0.2008.08.22
 - Update to latest snapshot
 
 * Wed Aug 13 2008 Ray Strode <rstrode@redhat.com> 0.5.0-20.2008.08.13
