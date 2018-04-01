@@ -9,7 +9,7 @@
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.9.3
-Release: 3%{?dist}.R
+Release: 5%{?dist}.R
 License: GPLv2+
 URL: http://www.freedesktop.org/wiki/Software/Plymouth
 Group: System Environment/Base
@@ -252,7 +252,6 @@ find $RPM_BUILD_ROOT -name '*.la' -delete
 
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/lib/plymouth
 cp $RPM_SOURCE_DIR/boot-duration $RPM_BUILD_ROOT%{_datadir}/plymouth/default-boot-duration
-cp $RPM_SOURCE_DIR/boot-duration $RPM_BUILD_ROOT%{_localstatedir}/lib/plymouth
 cp -f $RPM_SOURCE_DIR/plymouth-update-initrd $RPM_BUILD_ROOT%{_libexecdir}/plymouth
 
 # Add charge, our new default
@@ -262,9 +261,6 @@ cp $RPM_BUILD_ROOT%{_datadir}/plymouth/themes/glow/{box,bullet,entry,lock}.png $
 
 # Drop glow, it's not very Fedora-y
 rm -rf $RPM_BUILD_ROOT%{_datadir}/plymouth/themes/glow
-
-%post
-[ -f %{_localstatedir}/lib/plymouth/boot-duration ] || cp -f %{_datadir}/plymouth/default-boot-duration %{_localstatedir}/lib/plymouth/boot-duration
 
 %postun
 if [ $1 -eq 0 ]; then
@@ -445,6 +441,12 @@ fi
 %files system-theme
 
 %changelog
+* Thu Mar 29 2018 Colin Walters <walters@verbum.org> - 0.9.3-5.R
+- Drop default boot duration: https://src.fedoraproject.org/rpms/plymouth/pull-request/1
+
+* Fri Feb 09 2018 Igor Gnatenko <ignatenkobrain@fedoraproject.org> - 0.9.3-4.R
+- Escape macros in %%changelog
+
 * Fri Feb 09 2018 Igor Gnatenko <ignatenkobrain@fedoraproject.org> - 0.9.3-4.R
 - Escape macros in %changelog
 
