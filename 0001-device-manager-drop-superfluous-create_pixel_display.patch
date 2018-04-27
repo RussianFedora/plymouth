@@ -1,3 +1,11 @@
-diff -irN plymouth-0.9.3.orig/src/libply-splash-core/ply-device-manager.c plymouth-0.9.3/src/libply-splash-core/ply-device-manager.c
-686d685
-<                 create_pixel_displays_for_renderer (manager, renderer);
+diff -urN plymouth-0.9.3.orig/src/libply-splash-core/ply-device-manager.c plymouth-0.9.3/src/libply-splash-core/ply-device-manager.c
+--- plymouth-0.9.3.orig/src/libply-splash-core/ply-device-manager.c	2018-04-27 12:31:15.060613417 +0300
++++ plymouth-0.9.3/src/libply-splash-core/ply-device-manager.c	2018-04-27 12:32:29.334122158 +0300
+@@ -683,7 +683,6 @@
+                 if (manager->keyboard_added_handler != NULL)
+                         manager->keyboard_added_handler (manager->event_handler_data, keyboard);
+ 
+-                create_pixel_displays_for_renderer (manager, renderer);
+                 ply_hashtable_insert (manager->renderers, strdup (device_path), renderer);
+                 create_pixel_displays_for_renderer (manager, renderer);
+ 
