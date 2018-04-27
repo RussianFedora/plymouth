@@ -1,0 +1,45 @@
+From da27e42316962be6f6b8ba2afb49760d9704d070 Mon Sep 17 00:00:00 2001
+From: Hans de Goede <hdegoede@redhat.com>
+Date: Sun, 21 Jan 2018 14:07:39 +0100
+Subject: [PATCH 2/6] main: Do not update the display on backspace when there
+ is no input to remove
+
+On machines with a slow CPU (Atom) and a highres screen drawing the
+diskcrypt dialog may take longer then the keyrepeat speed, this leads to
+a long delay before showing keypresses when doing the following:
+
+1) Type long password
+2) Realize it is wrong, press + hold backspace
+   the key-repeat will now generate backspace key presses faster then we
+   process them as main.c does an update_display for each press
+3) Users releases backspace when we've processed input-length backspace
+   key-presses, but since we were drawing slower then key-presses were
+   coming in many more backspace keypresses are in the keyboard buffer
+4) User types first character of the right password, this shows up up to
+   a couple of seconds later because first we are still processing all
+   the queued up backspace presses and doing a redraw for each.
+
+This commit fixes this by skipping the redraws in on_backspace when there
+is no more input left in the input buffer.
+
+https://bugs.freedesktop.org/show_bug.cgi?id=104714
+---
+ src/main.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/main.c b/src/main.c
+index 08c7fe1..f1e0fa7 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -1570,6 +1570,8 @@ on_backspace (state_t *state)
+ 
+         bytes = ply_buffer_get_bytes (state->entry_buffer);
+         size = ply_buffer_get_size (state->entry_buffer);
++        if (size == 0)
++                return;
+ 
+         bytes_to_remove = MIN (size, PLY_UTF8_CHARACTER_SIZE_MAX);
+         while ((previous_character_size = ply_utf8_character_get_size (bytes + size - bytes_to_remove, bytes_to_remove)) < bytes_to_remove) {
+-- 
+2.17.0
+

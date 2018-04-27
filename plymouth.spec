@@ -9,7 +9,7 @@
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.9.3
-Release: 5%{?dist}.R
+Release: 6%{?dist}.R
 License: GPLv2+
 URL: http://www.freedesktop.org/wiki/Software/Plymouth
 Group: System Environment/Base
@@ -18,6 +18,17 @@ Source0: http://freedesktop.org/software/plymouth/releases/%{name}-%{version}.ta
 Source1: boot-duration
 Source2: charge.plymouth
 Source3: plymouth-update-initrd
+
+# Patches from upstream git for rotated-display support
+# https://bugs.freedesktop.org/show_bug.cgi?id=104714
+# These can all be dropped on the next rebase
+Patch1: 0001-device-manager-drop-superfluous-create_pixel_display.patch
+Patch2: 0002-main-Do-not-update-the-display-on-backspace-when-the.patch
+Patch3: 0003-pixel-buffer-Add-the-concept-of-device-rotation.patch
+Patch4: 0004-drm-Check-for-panel-orientation-connector-property.patch
+Patch5: 0005-drm-Reset-primary-plane-rotation-to-DRM_MODE_ROTATE_.patch
+Patch6: 0006-pixel-buffer-switch-device-rotation-to-an-enum.patch
+Patch7: 0007-terminal-add-include-for-sysmacros.h.patch
 
 BuildRequires: pkgconfig(libdrm)
 BuildRequires: pkgconfig(libudev)
@@ -219,7 +230,7 @@ This package contains the "spinner" boot splash theme for
 Plymouth. It features a small spinner on a dark background.
 
 %prep
-%setup -q
+%autosetup -p1
 
 # Change the default theme
 sed -i -e 's/spinner/charge/g' src/plymouthd.defaults
@@ -441,6 +452,10 @@ fi
 %files system-theme
 
 %changelog
+* Sun Apr 15 2018 Hans de Goede <jwrdegoede@fedoraproject.org> - 0.9.3-6.R
+- Add patches from upstream git for devices with non upright mounted LCD panels
+  https://bugs.freedesktop.org/show_bug.cgi?id=104714
+
 * Thu Mar 29 2018 Colin Walters <walters@verbum.org> - 0.9.3-5.R
 - Drop default boot duration: https://src.fedoraproject.org/rpms/plymouth/pull-request/1
 

@@ -1,0 +1,102 @@
+From a6f25b727698a2382e332ab566ed39ee30f8efdc Mon Sep 17 00:00:00 2001
+From: Hans de Goede <hdegoede@redhat.com>
+Date: Tue, 12 Dec 2017 19:47:26 +0100
+Subject: [PATCH 4/6] drm: Check for "panel orientation" connector property
+
+On some devices the LCD panel is mounted in the casing in such a way
+that the up/top side of the panel does not match with the top side of
+the device (e.g. it is mounted upside-down).
+
+Kernel 4.16 introduces a new "panel-orientation" property on the drm
+connector which allows modesetting applications / code to check for
+such LCD panels.
+
+This commit adds support for this new property and passes this to the
+pixel_buffer code using the new ply_pixel_buffer_new_with_device_rotation
+method, so that the pixel_buffer code will automatically rotate the
+image to correct for the panel orientation.
+
+https://bugs.freedesktop.org/show_bug.cgi?id=104714
+---
+ src/plugins/renderers/drm/plugin.c | 51 +++++++++++++++++++++++++++++-
+ 1 file changed, 50 insertions(+), 1 deletion(-)
+
+diff --git a/src/plugins/renderers/drm/plugin.c b/src/plugins/renderers/drm/plugin.c
+index b93e8e4..f495854 100644
+--- a/src/plugins/renderers/drm/plugin.c
++++ b/src/plugins/renderers/drm/plugin.c
+@@ -367,6 +367,53 @@ destroy_output_buffer (ply_renderer_backend_t *backend,
+         ply_renderer_buffer_free (backend, buffer);
+ }
+ 
++static int
++connector_orientation_prop_to_rotation (drmModePropertyPtr prop,
++                                        int orientation)
++{
++        const char *name = prop->enums[orientation].name;
++
++        if (strcmp (name, "Upside Down") == 0)
++                return PLY_PIXEL_BUFFER_ROTATE_UPSIDE_DOWN;
++
++        if (strcmp (name, "Left Side Up") == 0) {
++                /* Left side up, rotate counter clockwise to correct */
++                return PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE;
++        }
++
++        if (strcmp (name, "Right Side Up") == 0) {
++                /* Left side up, rotate clockwise to correct */
++                return PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE;
++        }
++
++        return PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
++}
++
++static int
++ply_renderer_connector_get_rotation (ply_renderer_backend_t *backend,
++                                     drmModeConnector       *connector)
++{
++        drmModePropertyPtr prop;
++        int i, rotation;
++
++        for (i = 0; i < connector->count_props; i++) {
++                prop = drmModeGetProperty (backend->device_fd, connector->props[i]);
++                if (!prop)
++                        continue;
++
++                if ((prop->flags & DRM_MODE_PROP_ENUM) &&
++                    strcmp (prop->name, "panel orientation") == 0) {
++                         rotation = connector_orientation_prop_to_rotation (prop, connector->prop_values[i]);
++                         drmModeFreeProperty (prop);
++                         return rotation;
++                }
++
++                drmModeFreeProperty (prop);
++        }
++
++        return PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
++}
++
+ static bool
+ ply_renderer_head_add_connector (ply_renderer_head_t *head,
+                                  drmModeConnector    *connector,
+@@ -402,6 +449,7 @@ ply_renderer_head_new (ply_renderer_backend_t *backend,
+ {
+         ply_renderer_head_t *head;
+         drmModeModeInfo *mode;
++        int rotation;
+ 
+         head = calloc (1, sizeof(ply_renderer_head_t));
+ 
+@@ -425,7 +473,8 @@ ply_renderer_head_new (ply_renderer_backend_t *backend,
+         ply_renderer_head_add_connector (head, connector, connector_mode_index);
+         assert (ply_array_get_size (head->connector_ids) > 0);
+ 
+-        head->pixel_buffer = ply_pixel_buffer_new (head->area.width, head->area.height);
++        rotation = ply_renderer_connector_get_rotation (backend, connector);
++        head->pixel_buffer = ply_pixel_buffer_new_with_device_rotation (head->area.width, head->area.height, rotation);
+         ply_pixel_buffer_set_device_scale (head->pixel_buffer,
+                                            ply_get_device_scale (head->area.width,
+                                                                  head->area.height,
+-- 
+2.17.0
+

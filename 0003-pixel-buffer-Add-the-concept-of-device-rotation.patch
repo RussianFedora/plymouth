@@ -1,0 +1,249 @@
+From 0e4e268844ea38075535eb5b233dda325da4481d Mon Sep 17 00:00:00 2001
+From: Hans de Goede <hdegoede@redhat.com>
+Date: Wed, 6 Dec 2017 17:37:12 +0100
+Subject: [PATCH 3/6] pixel-buffer: Add the concept of device rotation
+
+On some devices the LCD panel is mounted in the casing in such a way
+that the up/top side of the panel does not match with the top side of
+the device (e.g. it is mounted upside-down).
+
+This commit adds support to the ply-pixel-buffer code to create
+buffers which take device rotation into account and which will rotate
+the picture to compensate.
+
+https://bugs.freedesktop.org/show_bug.cgi?id=104714
+---
+ src/libply-splash-core/ply-pixel-buffer.c | 109 ++++++++++++++++++++--
+ src/libply-splash-core/ply-pixel-buffer.h |   9 ++
+ 2 files changed, 110 insertions(+), 8 deletions(-)
+
+diff --git a/src/libply-splash-core/ply-pixel-buffer.c b/src/libply-splash-core/ply-pixel-buffer.c
+index 52a3f86..a337407 100644
+--- a/src/libply-splash-core/ply-pixel-buffer.c
++++ b/src/libply-splash-core/ply-pixel-buffer.c
+@@ -50,6 +50,7 @@ struct _ply_pixel_buffer
+         ply_region_t   *updated_areas; /* in device pixels */
+         uint32_t        is_opaque : 1;
+         int             device_scale;
++        int             device_rotation;
+ };
+ 
+ static inline void ply_pixel_buffer_blend_value_at_pixel (ply_pixel_buffer_t *buffer,
+@@ -153,6 +154,52 @@ make_pixel_value_translucent (uint32_t pixel_value,
+         return (alpha << 24) | (red << 16) | (green << 8) | blue;
+ }
+ 
++static inline void ply_pixel_buffer_set_pixel (ply_pixel_buffer_t *buffer,
++                                               int                 x,
++                                               int                 y,
++                                               uint32_t            pixel_value)
++{
++        switch (buffer->device_rotation) {
++        case PLY_PIXEL_BUFFER_ROTATE_UPRIGHT:
++                buffer->bytes[y * buffer->area.width + x] = pixel_value;
++                break;
++        case PLY_PIXEL_BUFFER_ROTATE_UPSIDE_DOWN:
++                x = (buffer->area.width - 1) - x;
++                y = (buffer->area.height - 1) - y;
++                buffer->bytes[y * buffer->area.width + x] = pixel_value;
++                break;
++        case PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE:
++                y = (buffer->area.height - 1) - y;
++                buffer->bytes[x * buffer->area.height + y] = pixel_value;
++                break;
++        case PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE:
++                x = (buffer->area.width - 1) - x;
++                buffer->bytes[x * buffer->area.height + y] = pixel_value;
++                break;
++        }
++}
++
++static inline uint32_t ply_pixel_buffer_get_pixel (ply_pixel_buffer_t *buffer,
++                                                   int                 x,
++                                                   int                 y)
++{
++        switch (buffer->device_rotation) {
++        case PLY_PIXEL_BUFFER_ROTATE_UPRIGHT:
++                return buffer->bytes[y * buffer->area.width + x];
++        case PLY_PIXEL_BUFFER_ROTATE_UPSIDE_DOWN:
++                x = (buffer->area.width - 1) - x;
++                y = (buffer->area.height - 1) - y;
++                return buffer->bytes[y * buffer->area.width + x];
++        case PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE:
++                y = (buffer->area.height - 1) - y;
++                return buffer->bytes[x * buffer->area.height + y];
++        case PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE:
++                x = (buffer->area.width - 1) - x;
++                return buffer->bytes[x * buffer->area.height + y];
++        }
++        return 0;
++}
++
+ static inline void
+ ply_pixel_buffer_blend_value_at_pixel (ply_pixel_buffer_t *buffer,
+                                        int                 x,
+@@ -162,12 +209,12 @@ ply_pixel_buffer_blend_value_at_pixel (ply_pixel_buffer_t *buffer,
+         uint32_t old_pixel_value;
+ 
+         if ((pixel_value >> 24) != 0xff) {
+-                old_pixel_value = buffer->bytes[y * buffer->area.width + x];
++                old_pixel_value = ply_pixel_buffer_get_pixel (buffer, x, y);
+ 
+                 pixel_value = blend_two_pixel_values (pixel_value, old_pixel_value);
+         }
+ 
+-        buffer->bytes[y * buffer->area.width + x] = pixel_value;
++        ply_pixel_buffer_set_pixel (buffer, x, y, pixel_value);
+ }
+ 
+ static void
+@@ -222,6 +269,35 @@ ply_pixel_buffer_crop_area_to_clip_area (ply_pixel_buffer_t *buffer,
+         }
+ }
+ 
++static void ply_pixel_buffer_add_updated_area (ply_pixel_buffer_t *buffer,
++                                               ply_rectangle_t    *area)
++{
++        ply_rectangle_t updated_area = *area;
++
++        switch (buffer->device_rotation) {
++        case PLY_PIXEL_BUFFER_ROTATE_UPRIGHT:
++                break;
++        case PLY_PIXEL_BUFFER_ROTATE_UPSIDE_DOWN:
++                updated_area.x = buffer->area.width - area->width - area->x;
++                updated_area.y = buffer->area.height - area->height - area->y;
++                break;
++        case PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE:
++                updated_area.x = buffer->area.height - area->height - area->y;
++                updated_area.y = area->x;
++                updated_area.height = area->width;
++                updated_area.width = area->height;
++                break;
++        case PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE:
++                updated_area.x = area->y;
++                updated_area.y = buffer->area.width - area->width - area->x;
++                updated_area.height = area->width;
++                updated_area.width = area->height;
++                break;
++        }
++
++        ply_region_add_rectangle (buffer->updated_areas, &updated_area);
++}
++
+ static void
+ ply_pixel_buffer_fill_area_with_pixel_value (ply_pixel_buffer_t *buffer,
+                                              ply_rectangle_t    *fill_area,
+@@ -251,7 +327,7 @@ ply_pixel_buffer_fill_area_with_pixel_value (ply_pixel_buffer_t *buffer,
+                 }
+         }
+ 
+-        ply_region_add_rectangle (buffer->updated_areas, &cropped_area);
++        ply_pixel_buffer_add_updated_area (buffer, &cropped_area);
+ }
+ 
+ void
+@@ -281,9 +357,24 @@ ply_pixel_buffer_pop_clip_area (ply_pixel_buffer_t *buffer)
+ ply_pixel_buffer_t *
+ ply_pixel_buffer_new (unsigned long width,
+                       unsigned long height)
++{
++        return ply_pixel_buffer_new_with_device_rotation (
++                        width, height, PLY_PIXEL_BUFFER_ROTATE_UPRIGHT);
++}
++
++ply_pixel_buffer_t *
++ply_pixel_buffer_new_with_device_rotation (unsigned long width,
++                                           unsigned long height,
++                                           int device_rotation)
+ {
+         ply_pixel_buffer_t *buffer;
+ 
++        if (device_rotation >= PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE) {
++                unsigned long tmp = width;
++                width = height;
++                height = tmp;
++        }
++
+         buffer = calloc (1, sizeof(ply_pixel_buffer_t));
+ 
+         buffer->updated_areas = ply_region_new ();
+@@ -292,6 +383,7 @@ ply_pixel_buffer_new (unsigned long width,
+         buffer->area.height = height;
+         buffer->logical_area = buffer->area;
+         buffer->device_scale = 1;
++        buffer->device_rotation = device_rotation;
+ 
+         buffer->clip_areas = ply_list_new ();
+         ply_pixel_buffer_push_clip_area (buffer, &buffer->area);
+@@ -447,7 +539,7 @@ ply_pixel_buffer_fill_with_gradient (ply_pixel_buffer_t *buffer,
+ 
+         for (y = buffer->area.y; y < buffer->area.y + buffer->area.height; y++) {
+                 if (cropped_area.y <= y && y < cropped_area.y + cropped_area.height) {
+-                        if (cropped_area.width < UNROLLED_PIXEL_COUNT) {
++                        if (cropped_area.width < UNROLLED_PIXEL_COUNT || buffer->device_rotation) {
+                                 for (x = cropped_area.x; x < cropped_area.x + cropped_area.width; x++) {
+                                         pixel = 0xff000000;
+                                         RANDOMIZE (noise);
+@@ -457,7 +549,7 @@ ply_pixel_buffer_fill_with_gradient (ply_pixel_buffer_t *buffer,
+                                         RANDOMIZE (noise);
+                                         pixel |= (((blue + noise) & COLOR_MASK) >> BLUE_SHIFT);
+ 
+-                                        buffer->bytes[y * buffer->area.width + x] = pixel;
++                                        ply_pixel_buffer_set_pixel (buffer, x, y, pixel);
+                                 }
+                         } else {
+                                 uint32_t shaded_set[UNROLLED_PIXEL_COUNT];
+@@ -485,7 +577,7 @@ ply_pixel_buffer_fill_with_gradient (ply_pixel_buffer_t *buffer,
+                 blue += blue_step;
+         }
+ 
+-        ply_region_add_rectangle (buffer->updated_areas, &cropped_area);
++        ply_pixel_buffer_add_updated_area (buffer, &cropped_area);
+ }
+ 
+ void
+@@ -671,7 +763,7 @@ ply_pixel_buffer_fill_with_argb32_data_at_opacity_with_clip_and_scale (ply_pixel
+                 }
+         }
+ 
+-        ply_region_add_rectangle (buffer->updated_areas, &cropped_area);
++        ply_pixel_buffer_add_updated_area (buffer, &cropped_area);
+ }
+ 
+ void
+@@ -756,7 +848,8 @@ ply_pixel_buffer_fill_with_buffer_at_opacity_with_clip (ply_pixel_buffer_t *canv
+ 
+         /* Fast path to memcpy if we need no blending or scaling */
+         if (opacity == 1.0 && ply_pixel_buffer_is_opaque (source) &&
+-            canvas->device_scale == source->device_scale) {
++            canvas->device_scale == source->device_scale &&
++            canvas->device_rotation == PLY_PIXEL_BUFFER_ROTATE_UPRIGHT) {
+                 ply_rectangle_t cropped_area;
+ 
+                 cropped_area.x = x_offset;
+diff --git a/src/libply-splash-core/ply-pixel-buffer.h b/src/libply-splash-core/ply-pixel-buffer.h
+index 595e9bd..7736dd3 100644
+--- a/src/libply-splash-core/ply-pixel-buffer.h
++++ b/src/libply-splash-core/ply-pixel-buffer.h
+@@ -37,9 +37,18 @@ typedef struct _ply_pixel_buffer ply_pixel_buffer_t;
+          | ((uint8_t) (CLAMP (g * 255.0, 0.0, 255.0)) << 8)                      \
+          | ((uint8_t) (CLAMP (b * 255.0, 0.0, 255.0))))
+ 
++#define PLY_PIXEL_BUFFER_ROTATE_UPRIGHT             0
++#define PLY_PIXEL_BUFFER_ROTATE_UPSIDE_DOWN         1
++#define PLY_PIXEL_BUFFER_ROTATE_CLOCKWISE           2
++#define PLY_PIXEL_BUFFER_ROTATE_COUNTER_CLOCKWISE   3
++
+ #ifndef PLY_HIDE_FUNCTION_DECLARATIONS
+ ply_pixel_buffer_t *ply_pixel_buffer_new (unsigned long width,
+                                           unsigned long height);
++ply_pixel_buffer_t *
++ply_pixel_buffer_new_with_device_rotation (unsigned long width,
++                                           unsigned long height,
++                                           int device_rotation);
+ void ply_pixel_buffer_free (ply_pixel_buffer_t *buffer);
+ void ply_pixel_buffer_get_size (ply_pixel_buffer_t *buffer,
+                                 ply_rectangle_t    *size);
+-- 
+2.17.0
+
