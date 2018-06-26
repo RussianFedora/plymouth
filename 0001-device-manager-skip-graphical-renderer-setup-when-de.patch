@@ -1,0 +1,117 @@
+From 014c2158898067176738ec36c9c90cc266a7e35b Mon Sep 17 00:00:00 2001
+From: Adam Williamson <awilliam@redhat.com>
+Date: Wed, 6 Jun 2018 17:06:14 -0700
+Subject: [PATCH] device-manager: skip graphical renderer setup when details
+ forced
+
+If neither "rhgb" nor "splash" is on the kernel cmdline, then
+plymouth forces the "details" splash. This splash is merely
+a passthrough plugin, where it makes boot looks like plymouth
+isn't even running.
+
+In this case, the code sets PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV.
+The idea is to not bother waiting for udev events notifying
+plymouth when graphics devices show up, since it doesn't need
+to use the grpahics devices directly anyway.
+
+Unfortunately, it does still erroneously try to setup graphical
+renderers in this case, including the /dev/fb renderer.
+
+Before commit e4f86e3c, these graphical renderers failed because
+they were given the wrong device name, but since that fix, they're
+suceeding.  We definitely don't want the /dev/fb renderer to
+load if we're ignoring udev on efi systems, since during very
+early boot /dev/fb is backed by efifb, something we never want to
+use.  efifb is supposed to get replaced during the boot process
+by other fb implementations like say radeondrmfb, virtiodrmfb or
+bochsdrmfb, and some of those implementations can't handle the
+transition if /dev/fb is open at switchover time.
+
+This commit adds a new flag to tell the device manager to
+not bother trying to setup graphical renderers when details are
+forced.
+
+http://bugzilla.redhat.com/1518464
+---
+ src/libply-splash-core/ply-device-manager.c | 20 ++++++++++++++++----
+ src/libply-splash-core/ply-device-manager.h |  3 ++-
+ src/main.c                                  |  4 +++-
+ 3 files changed, 21 insertions(+), 6 deletions(-)
+
+diff --git a/src/libply-splash-core/ply-device-manager.c b/src/libply-splash-core/ply-device-manager.c
+index fbf4723..b637fb8 100644
+--- a/src/libply-splash-core/ply-device-manager.c
++++ b/src/libply-splash-core/ply-device-manager.c
+@@ -786,6 +786,15 @@ create_devices_from_terminals (ply_device_manager_t *manager)
+         return false;
+ }
+ 
++static void
++create_non_graphical_devices (ply_device_manager_t *manager)
++{
++        create_devices_for_terminal_and_renderer_type (manager,
++                                                       NULL,
++                                                       manager->local_console_terminal,
++                                                       PLY_RENDERER_TYPE_NONE);
++}
++
+ #ifdef HAVE_UDEV
+ static void
+ create_devices_from_udev (ply_device_manager_t *manager)
+@@ -801,10 +810,7 @@ create_devices_from_udev (ply_device_manager_t *manager)
+                 return;
+ 
+         ply_trace ("Creating non-graphical devices, since there's no suitable graphics hardware");
+-        create_devices_for_terminal_and_renderer_type (manager,
+-                                                       NULL,
+-                                                       manager->local_console_terminal,
+-                                                       PLY_RENDERER_TYPE_NONE);
++        create_non_graphical_devices (manager);
+ }
+ #endif
+ 
+@@ -845,6 +851,12 @@ ply_device_manager_watch_devices (ply_device_manager_t                *manager,
+         if (done_with_initial_devices_setup)
+                 return;
+ 
++        if ((manager->flags & PLY_DEVICE_MANAGER_FLAGS_SKIP_RENDERERS)) {
++                ply_trace ("Creating non-graphical devices, since renderers are being explicitly skipped");
++                create_non_graphical_devices (manager);
++                return;
++        }
++
+         if ((manager->flags & PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV)) {
+                 ply_trace ("udev support disabled, creating fallback devices");
+                 create_fallback_devices (manager);
+diff --git a/src/libply-splash-core/ply-device-manager.h b/src/libply-splash-core/ply-device-manager.h
+index 058f6e8..ad05897 100644
+--- a/src/libply-splash-core/ply-device-manager.h
++++ b/src/libply-splash-core/ply-device-manager.h
+@@ -31,7 +31,8 @@ typedef enum
+ {
+         PLY_DEVICE_MANAGER_FLAGS_NONE = 0,
+         PLY_DEVICE_MANAGER_FLAGS_IGNORE_SERIAL_CONSOLES = 1 << 0,
+-                PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV = 1 << 1
++        PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV = 1 << 1,
++        PLY_DEVICE_MANAGER_FLAGS_SKIP_RENDERERS = 1 << 2
+ } ply_device_manager_flags_t;
+ 
+ typedef struct _ply_device_manager ply_device_manager_t;
+diff --git a/src/main.c b/src/main.c
+index f1e0fa7..841fe6b 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -2358,7 +2358,9 @@ main (int    argc,
+                 device_manager_flags |= PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV;
+ 
+         if (!plymouth_should_show_default_splash (&state)) {
+-                /* don't bother listening for udev events if we're forcing details */
++                /* don't bother listening for udev events or setting up a graphical renderer
++                 * if we're forcing details */
++                device_manager_flags |= PLY_DEVICE_MANAGER_FLAGS_SKIP_RENDERERS;
+                 device_manager_flags |= PLY_DEVICE_MANAGER_FLAGS_IGNORE_UDEV;
+ 
+                 /* don't ever delay showing the detailed splash */
+-- 
+2.17.1
+

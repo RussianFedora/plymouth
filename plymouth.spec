@@ -9,7 +9,7 @@
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.9.3
-Release: 6%{?dist}.R
+Release: 9%{?dist}.R
 License: GPLv2+
 URL: http://www.freedesktop.org/wiki/Software/Plymouth
 Group: System Environment/Base
@@ -29,6 +29,12 @@ Patch4: 0004-drm-Check-for-panel-orientation-connector-property.patch
 Patch5: 0005-drm-Reset-primary-plane-rotation-to-DRM_MODE_ROTATE_.patch
 Patch6: 0006-pixel-buffer-switch-device-rotation-to-an-enum.patch
 Patch7: 0007-terminal-add-include-for-sysmacros.h.patch
+
+# Patch from upstream for #1518464
+Patch8: 0001-device-manager-skip-graphical-renderer-setup-when-de.patch
+
+# Patch from upstream fixes boot with rhgb but no renderers available
+Patch9: 0001-device-manager-fall-back-to-text-mode-if-graphical-d.patch
 
 BuildRequires: pkgconfig(libdrm)
 BuildRequires: pkgconfig(libudev)
@@ -353,7 +359,6 @@ fi
 %{_libdir}/plymouth/details.so
 %{_libdir}/plymouth/text.so
 %{_libdir}/plymouth/tribar.so
-%{_libdir}/plymouth/renderers/frame-buffer*
 %{_datadir}/plymouth/default-boot-duration
 %{_datadir}/plymouth/themes/details/details.plymouth
 %{_datadir}/plymouth/themes/text/text.plymouth
@@ -384,8 +389,9 @@ fi
 %dir %{_libdir}/plymouth
 
 %files graphics-libs
-%{_libdir}/plymouth/renderers/drm*
 %{_libdir}/libply-splash-graphics.so.*
+%{_libdir}/plymouth/renderers/drm*
+%{_libdir}/plymouth/renderers/frame-buffer*
 
 %files scripts
 %{_sbindir}/plymouth-set-default-theme
@@ -452,6 +458,19 @@ fi
 %files system-theme
 
 %changelog
+* Wed Jun 06 2018 Adam Williamson <awilliam@redhat.com> - 0.9.3-9.R
+- Backport patch to avoid loading renderers on non-rhgb boot
+- Backport patch to handle 'rhgb' but no renderers available
+- Move frame-buffer rendererer back to graphics-libs subpackage
+
+* Mon Jun 04 2018 Adam Williamson <awilliam@redhat.com> - 0.9.3-8
+- Move frame-buffer and drm renderers back to main package
+  Having both in subpackage breaks minimal installs with rhgb
+
+* Fri Jun 01 2018 Adam Williamson <awilliam@redhat.com> - 0.9.3-7.R
+- Move frame-buffer renderer to graphics-libs
+- Resolves: #1518464
+
 * Sun Apr 15 2018 Hans de Goede <jwrdegoede@fedoraproject.org> - 0.9.3-6.R
 - Add patches from upstream git for devices with non upright mounted LCD panels
   https://bugs.freedesktop.org/show_bug.cgi?id=104714
