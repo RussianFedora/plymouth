@@ -1,0 +1,96 @@
+From 6a1fdabf344bdc15956e69d6dee78752680369a5 Mon Sep 17 00:00:00 2001
+From: Hans de Goede <hdegoede@redhat.com>
+Date: Tue, 26 Jun 2018 09:15:25 +0200
+Subject: [PATCH 6/9] main: Fix getting detailed logs from systemd
+
+This are 3 issues with the detailed logs handling:
+
+1) plymouth attaches to the session directly on a show-splash command
+(in on_show_splash()), but it does not tell systemd to start printing
+details until the splash is actually shown after the splash_delay.
+
+2) If the splash is actually shown during the initrd (e.g. a diskcript
+password is necessary) then we tell the initrd systemd instance to
+print details, but we don't tell the regular initrd instance which takes
+over as pid 1 after the switch-root to print details.
+
+This leads to rather inconsistent logging/printing behavior, e.g.:
+
+* If a diskcrypt password is asked for, we only log details from
+the initrd phase.
+
+* If the boot is shorter then splash_delay no details are logged
+
+* If the user presses ESC during boot during the initrd, only initrd
+  messages are printed
+
+* If the user presses ESC during boot after the initrd, only normal
+  messages are printed
+
+This commit fixes both these issues by:
+
+1) Telling systemd to print details as soon as we have attached to the session;
+   and to stop printing details when we detach from the session (*)
+2) Telling systemd to print details after the rootfs has been remounted rw
+
+*) This is necessary to have a smooth transition to e.g. gdm if the splash
+has not shown because the boot is shorter then splash_delay
+
+Signed-off-by: Hans de Goede <hdegoede@redhat.com>
+---
+ src/main.c | 18 +++++++++++++-----
+ 1 file changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/src/main.c b/src/main.c
+index d7f192f..634a38e 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -853,6 +853,11 @@ on_system_initialized (state_t *state)
+         ply_trace ("system now initialized, opening log");
+         state->system_initialized = true;
+ 
++#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
++        if (state->is_attached)
++                tell_systemd_to_print_details (state);
++#endif
++
+         prepare_logging (state);
+ }
+ 
+@@ -1782,11 +1787,6 @@ show_theme (state_t    *state,
+                 return NULL;
+         }
+ 
+-#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
+-        if (state->is_attached)
+-                tell_systemd_to_print_details (state);
+-#endif
+-
+         ply_device_manager_activate_keyboards (state->device_manager);
+ 
+         return splash;
+@@ -1833,6 +1833,10 @@ attach_to_running_session (state_t *state)
+                 return false;
+         }
+ 
++#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
++        tell_systemd_to_print_details (state);
++#endif
++
+         state->is_redirected = should_be_redirected;
+         state->is_attached = true;
+         state->session = session;
+@@ -1849,6 +1853,10 @@ detach_from_running_session (state_t *state)
+         if (!state->is_attached)
+                 return;
+ 
++#ifdef PLY_ENABLE_SYSTEMD_INTEGRATION
++        tell_systemd_to_stop_printing_details (state);
++#endif
++
+         ply_trace ("detaching from terminal session");
+         ply_terminal_session_detach (state->session);
+         state->is_redirected = false;
+-- 
+2.18.0
+

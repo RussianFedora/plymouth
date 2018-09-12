@@ -1,21 +1,26 @@
-%define plymouthdaemon_execdir %{_sbindir}
-%define plymouthclient_execdir %{_bindir}
-%define plymouth_libdir %{_libdir}
-%define plymouth_initrd_file /boot/initrd-plymouth.img
+%global plymouthdaemon_execdir %{_sbindir}
+%global plymouthclient_execdir %{_bindir}
+%global plymouth_libdir %{_libdir}
+%global plymouth_initrd_file /boot/initrd-plymouth.img
 
-%define snapshot_date 20160620
-%define snapshot_hash 0e65b86c
+# Set to 1 if building from snapshots.
+%global snapshot_build 0
+
+%if %{snapshot_build}
+%global snapshot_date 20160620
+%global snapshot_hash 0e65b86c
+%global snapshot_rel  %{?snapshot_date}git%{?snapshot_hash}
+%endif
+
 
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.9.3
-Release: 9%{?dist}.R
+Release: 13%{?snapshot_rel}%{?dist}.R
 License: GPLv2+
 URL: http://www.freedesktop.org/wiki/Software/Plymouth
-Group: System Environment/Base
 
 Source0: http://freedesktop.org/software/plymouth/releases/%{name}-%{version}.tar.xz
-Source1: boot-duration
 Source2: charge.plymouth
 Source3: plymouth-update-initrd
 
@@ -36,6 +41,17 @@ Patch8: 0001-device-manager-skip-graphical-renderer-setup-when-de.patch
 # Patch from upstream fixes boot with rhgb but no renderers available
 Patch9: 0001-device-manager-fall-back-to-text-mode-if-graphical-d.patch
 
+# Patches from upstream to fix details view on kernels build with
+# CONFIG_FRAMEBUFFER_CONSOLE_DEFERRED_TAKEOVER
+Patch10: 0001-renderer-support-reactivating-renderer-without-closi.patch
+Patch11: 0002-main-move-ply_device_manager_deactivate_renderers-in.patch
+Patch12: 0003-main-Only-activate-renderers-if-the-splash-uses-pixe.patch
+Patch13: 0004-drm-Remove-unnecessary-reset_scan_out_buffer_if_need.patch
+Patch14: 0005-main-Show-details-when-ESC-is-pressed-during-splash_.patch
+Patch15: 0006-main-Fix-getting-detailed-logs-from-systemd.patch
+Patch16: 0007-main-fix-build.patch
+
+BuildRequires: gcc
 BuildRequires: pkgconfig(libdrm)
 BuildRequires: pkgconfig(libudev)
 BuildRequires: kernel-headers
@@ -46,7 +62,6 @@ BuildRequires: pango-devel >= 1.21.0
 BuildRequires: cairo-devel
 
 Requires(post): plymouth-scripts
-Requires: initscripts >= 8.83-1
 
 %description
 Plymouth provides an attractive graphical boot animation in
@@ -56,7 +71,6 @@ after boot.
 
 %package system-theme
 Summary: Plymouth default theme
-Group: System Environment/Base
 Requires: plymouth(system-theme) = %{version}-%{release}
 
 %description system-theme
@@ -64,7 +78,6 @@ This metapackage tracks the current distribution default theme.
 
 %package core-libs
 Summary: Plymouth core libraries
-Group: Development/Libraries
 
 %description core-libs
 This package contains the libply and libply-splash-core libraries
@@ -72,7 +85,6 @@ used by Plymouth.
 
 %package graphics-libs
 Summary: Plymouth graphics libraries
-Group: Development/Libraries
 Requires: %{name}-core-libs = %{version}-%{release}
 Requires: system-logos
 
@@ -82,7 +94,6 @@ used by graphical Plymouth splashes.
 
 %package devel
 Summary: Libraries and headers for writing Plymouth splash plugins
-Group: Development/Libraries
 Requires: %{name} = %{version}-%{release}
 Requires: pkgconfig
 
@@ -92,7 +103,6 @@ and headers needed to develop 3rd party splash plugins for Plymouth.
 
 %package scripts
 Summary: Plymouth related scripts
-Group: Applications/System
 Requires: findutils, coreutils, gzip, cpio, dracut, plymouth
 
 %description scripts
@@ -101,7 +111,6 @@ the system.
 
 %package plugin-label
 Summary: Plymouth label plugin
-Group: System Environment/Base
 Requires: %{name} = %{version}-%{release}
 Requires: %{name}-graphics-libs = %{version}-%{release}
 
@@ -112,7 +121,6 @@ graphical boot splashes using pango and cairo.
 
 %package plugin-fade-throbber
 Summary: Plymouth "Fade-Throbber" plugin
-Group: System Environment/Base
 Requires: %{name} = %{version}-%{release}
 Requires: %{name}-graphics-libs = %{version}-%{release}
 
@@ -123,7 +131,6 @@ while other images pulsate around during system boot up.
 
 %package theme-fade-in
 Summary: Plymouth "Fade-In" theme
-Group: System Environment/Base
 Requires: %{name}-plugin-fade-throbber = %{version}-%{release}
 Requires(post): plymouth-scripts
 
@@ -134,7 +141,6 @@ while stars twinkle around the logo during system boot up.
 
 %package plugin-throbgress
 Summary: Plymouth "Throbgress" plugin
-Group: System Environment/Base
 Requires: %{name} = %{version}-%{release}
 Requires: %{name}-graphics-libs = %{version}-%{release}
 Requires: plymouth-plugin-label
@@ -147,7 +153,6 @@ the screen.
 
 %package theme-spinfinity
 Summary: Plymouth "Spinfinity" theme
-Group: System Environment/Base
 Requires: %{name}-plugin-throbgress = %{version}-%{release}
 Requires(post): plymouth-scripts
 
@@ -158,7 +163,6 @@ spins in the shape of an infinity sign.
 
 %package plugin-space-flares
 Summary: Plymouth "space-flares" plugin
-Group: System Environment/Base
 Requires: %{name} = %{version}-%{release}
 Requires: %{name}-graphics-libs = %{version}-%{release}
 Requires: plymouth-plugin-label
@@ -169,7 +173,6 @@ Plymouth. It features a corner image with animated flares.
 
 %package theme-solar
 Summary: Plymouth "Solar" theme
-Group: System Environment/Base
 Requires: %{name}-plugin-space-flares = %{version}-%{release}
 Requires(post): plymouth-scripts
 
@@ -179,7 +182,6 @@ Plymouth. It features a blue flamed sun with animated solar flares.
 
 %package plugin-two-step
 Summary: Plymouth "two-step" plugin
-Group: System Environment/Base
 Requires: %{name} = %{version}-%{release}
 Requires: %{name}-graphics-libs = %{version}-%{release}
 Requires: plymouth-plugin-label
@@ -192,7 +194,6 @@ short, fast one-shot animation.
 
 %package theme-charge
 Summary: Plymouth "Charge" plugin
-Group: System Environment/Base
 Requires: %{name}-plugin-two-step = %{version}-%{release}
 Requires(post): plymouth-scripts
 Provides: plymouth(system-theme) = %{version}-%{release}
@@ -204,7 +205,6 @@ and finally burst into full form.
 
 %package plugin-script
 Summary: Plymouth "script" plugin
-Group: System Environment/Base
 Requires: %{name} = %{version}-%{release}
 Requires: %{name}-graphics-libs = %{version}-%{release}
 
@@ -216,7 +216,6 @@ boot splash themes.
 
 %package theme-script
 Summary: Plymouth "Script" plugin
-Group: System Environment/Base
 Requires: %{name}-plugin-script = %{version}-%{release}
 Requires(post): %{_sbindir}/plymouth-set-default-theme
 
@@ -227,7 +226,6 @@ plugin.
 
 %package theme-spinner
 Summary: Plymouth "Spinner" theme
-Group: System Environment/Base
 Requires: %{name}-plugin-two-step = %{version}-%{release}
 Requires(post): plymouth-scripts
 
@@ -268,7 +266,6 @@ find $RPM_BUILD_ROOT -name '*.a' -delete
 find $RPM_BUILD_ROOT -name '*.la' -delete
 
 mkdir -p $RPM_BUILD_ROOT%{_localstatedir}/lib/plymouth
-cp $RPM_SOURCE_DIR/boot-duration $RPM_BUILD_ROOT%{_datadir}/plymouth/default-boot-duration
 cp -f $RPM_SOURCE_DIR/plymouth-update-initrd $RPM_BUILD_ROOT%{_libexecdir}/plymouth
 
 # Add charge, our new default
@@ -359,7 +356,6 @@ fi
 %{_libdir}/plymouth/details.so
 %{_libdir}/plymouth/text.so
 %{_libdir}/plymouth/tribar.so
-%{_datadir}/plymouth/default-boot-duration
 %{_datadir}/plymouth/themes/details/details.plymouth
 %{_datadir}/plymouth/themes/text/text.plymouth
 %{_datadir}/plymouth/themes/tribar/tribar.plymouth
@@ -458,7 +454,27 @@ fi
 %files system-theme
 
 %changelog
-* Wed Jun 06 2018 Adam Williamson <awilliam@redhat.com> - 0.9.3-9.R
+* Wed Sep 12 2018 Arkady L. Shane <ashejn@russianfedora.pro> - 0.9.3-13.R
+- read from rfremix-release
+
+* Mon Aug 06 2018 Hans de Goede <jwrdegoede@fedoraproject.org> - 0.9.3-13
+- Update patches for CONFIG_FRAMEBUFFER_CONSOLE_DEFERRED_TAKEOVER interaction
+  to the latest patches from master, this fixes the transition from plymouth
+  to gdm being non smooth
+- Drop unused default-boot-duration file (rhbz#1456010)
+
+* Thu Aug  2 2018 Peter Robinson <pbrobinson@fedoraproject.org> 0.9.3-12
+- Drop groups in spec
+- Drop requires on initscripts (rhbz 1592383)
+
+* Fri Jul 13 2018 Fedora Release Engineering <releng@fedoraproject.org> - 0.9.3-11
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
+
+* Mon Jul 02 2018 Hans de Goede <jwrdegoede@fedoraproject.org> - 0.9.3-10
+- Add patches from upstream fixing details view on kernels build with
+  CONFIG_FRAMEBUFFER_CONSOLE_DEFERRED_TAKEOVER
+
+* Wed Jun 06 2018 Adam Williamson <awilliam@redhat.com> - 0.9.3-9
 - Backport patch to avoid loading renderers on non-rhgb boot
 - Backport patch to handle 'rhgb' but no renderers available
 - Move frame-buffer rendererer back to graphics-libs subpackage
@@ -467,27 +483,24 @@ fi
 - Move frame-buffer and drm renderers back to main package
   Having both in subpackage breaks minimal installs with rhgb
 
-* Fri Jun 01 2018 Adam Williamson <awilliam@redhat.com> - 0.9.3-7.R
+* Fri Jun 01 2018 Adam Williamson <awilliam@redhat.com> - 0.9.3-7
 - Move frame-buffer renderer to graphics-libs
 - Resolves: #1518464
 
-* Sun Apr 15 2018 Hans de Goede <jwrdegoede@fedoraproject.org> - 0.9.3-6.R
+* Sun Apr 15 2018 Hans de Goede <jwrdegoede@fedoraproject.org> - 0.9.3-6
 - Add patches from upstream git for devices with non upright mounted LCD panels
   https://bugs.freedesktop.org/show_bug.cgi?id=104714
 
-* Thu Mar 29 2018 Colin Walters <walters@verbum.org> - 0.9.3-5.R
+* Thu Mar 29 2018 Colin Walters <walters@verbum.org> - 0.9.3-5
 - Drop default boot duration: https://src.fedoraproject.org/rpms/plymouth/pull-request/1
 
-* Fri Feb 09 2018 Igor Gnatenko <ignatenkobrain@fedoraproject.org> - 0.9.3-4.R
+* Fri Feb 09 2018 Igor Gnatenko <ignatenkobrain@fedoraproject.org> - 0.9.3-4
 - Escape macros in %%changelog
 
-* Fri Feb 09 2018 Igor Gnatenko <ignatenkobrain@fedoraproject.org> - 0.9.3-4.R
-- Escape macros in %changelog
-
-* Fri Feb 09 2018 Fedora Release Engineering <releng@fedoraproject.org> - 0.9.3-3.R
+* Fri Feb 09 2018 Fedora Release Engineering <releng@fedoraproject.org> - 0.9.3-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
 
-* Tue Nov 28 2017 Ray Strode - 0.9.3-2.R
+* Tue Nov 28 2017 Ray Strode - 0.9.3-2
 - Bump ShowDelay back up to 5
   Related: #1518037
 
@@ -496,14 +509,14 @@ fi
 - Reduce ShowDelay to 0 (rhbz#1518037)
 - Change %%define to %%global
 
-* Tue Sep  5 2017 Arkady L. Shane <ashejn@russianfedora.pro> - 0.9.3-0.9.git.R
-- bump release to rebuild
+* Thu Aug 03 2017 Fedora Release Engineering <releng@fedoraproject.org> - 0.9.3-0.9.20160620git0e65b86c
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Binutils_Mass_Rebuild
 
-* Thu Mar  9 2017 Arkady L. Shane <ashejn@russianfedora.pro> - 0.9.3-0.7.git.R
-- bump release to rebuild
+* Thu Jul 27 2017 Fedora Release Engineering <releng@fedoraproject.org> - 0.9.3-0.8.20160620git0e65b86c
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Mass_Rebuild
 
-* Wed Sep 28 2016 Arkady L. Shane <ashejn@russianfedora.pro> - 0.9.3-0.6.git.R
-- read branding from rfremix-release
+* Sat Feb 11 2017 Fedora Release Engineering <releng@fedoraproject.org> - 0.9.3-0.7.20160620git0e65b86c
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_26_Mass_Rebuild
 
 * Mon Jun 20 2016 Ray Strode <rstrode@redhat.com> - 0.9.3-0.6.git
 - Fix color palette issue

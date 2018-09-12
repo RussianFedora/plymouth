@@ -1,0 +1,40 @@
+From 129b4a5004d771e83de37fc6f0d74615119ec102 Mon Sep 17 00:00:00 2001
+From: Hans de Goede <hdegoede@redhat.com>
+Date: Tue, 3 Jul 2018 08:44:33 +0200
+Subject: [PATCH 5/9] main: Show details when ESC is pressed during
+ splash_delay
+
+Start listening for keypresses on the first show_splash() call, so that
+pressing ESC while we're delaying show the non-details splash will show
+the details splash.
+
+Signed-off-by: Hans de Goede <hdegoede@redhat.com>
+---
+ src/main.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/main.c b/src/main.c
+index ed23968..d7f192f 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -361,6 +361,8 @@ show_detailed_splash (state_t *state)
+ {
+         ply_boot_splash_t *splash;
+ 
++        cancel_pending_delayed_show (state);
++
+         if (state->boot_splash != NULL)
+                 return;
+ 
+@@ -1001,6 +1003,8 @@ show_splash (state_t *state)
+                                                           (ply_event_loop_timeout_handler_t)
+                                                           show_splash,
+                                                           state);
++                        /* Listen for ESC to show details */
++                        ply_device_manager_activate_keyboards (state->device_manager);
+                         return;
+                 }
+         }
+-- 
+2.18.0
+

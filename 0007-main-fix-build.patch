@@ -1,0 +1,28 @@
+From 75ef8ee24bf5875875af44a91cd24975a4d92664 Mon Sep 17 00:00:00 2001
+From: Ray Strode <rstrode@redhat.com>
+Date: Tue, 10 Jul 2018 15:58:04 -0400
+Subject: [PATCH 7/7] main: fix build
+
+I slightly modified Hans patch in commit 129b4a50 before pushing it
+and broke the build.
+
+This fixes the build by adding a forward declaration.
+---
+ src/main.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/main.c b/src/main.c
+index 5555f0b..7e58fff 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -168,6 +168,7 @@ static void on_quit (state_t       *state,
+                      bool           retain_splash,
+                      ply_trigger_t *quit_trigger);
+ static bool sh_is_init (state_t *state);
++static void cancel_pending_delayed_show (state_t *state);
+ 
+ static ply_boot_splash_mode_t
+ get_splash_mode_from_mode (ply_mode_t mode)
+-- 
+2.18.0
+
