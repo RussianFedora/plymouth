@@ -1,0 +1,144 @@
+From 8db07cf2629d3a211b78c24b676f803703b1ec1f Mon Sep 17 00:00:00 2001
+From: Hans de Goede <hdegoede@redhat.com>
+Date: Tue, 2 Oct 2018 14:13:19 +0200
+Subject: [PATCH 4/5] drm: Refactor ply_renderer_connector_get_rotation
+
+ply_renderer_connector_get_rotation walks over all properties to add
+support for selecting the preferred mode we also want to know if a connector
+is part of a tiled output or not, which also requires walking over the props.
+
+This commit refactors ply_renderer_connector_get_rotation into
+ply_renderer_connector_get_rotation_and_tiled to prepare for this.
+
+While at also properly use ply_pixel_buffer_rotation_t for the orientation
+instead of an int.
+
+Signed-off-by: Hans de Goede <hdegoede@redhat.com>
+---
+ src/plugins/renderers/drm/plugin.c | 52 +++++++++++++++++-------------
+ 1 file changed, 30 insertions(+), 22 deletions(-)
+
+diff --git a/src/plugins/renderers/drm/plugin.c b/src/plugins/renderers/drm/plugin.c
+index 6e6b520..2d90ecb 100644
+--- a/src/plugins/renderers/drm/plugin.c
++++ b/src/plugins/renderers/drm/plugin.c
+@@ -376,7 +376,7 @@ destroy_output_buffer (ply_renderer_backend_t *backend,
+         ply_renderer_buffer_free (backend, buffer);
+ }
+ 
+-static int
++static ply_pixel_buffer_rotation_t
+ connector_orientation_prop_to_rotation (drmModePropertyPtr prop,
+                                         int orientation)
+ {
+@@ -398,12 +398,17 @@ connector_orientation_prop_to_rotation (drmModePropertyPtr prop,
+         return PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+ }
+ 
+-static int
+-ply_renderer_connector_get_rotation (ply_renderer_backend_t *backend,
+-                                     drmModeConnector       *connector)
++static void
++ply_renderer_connector_get_rotation_and_tiled (ply_renderer_backend_t      *backend,
++                                               drmModeConnector            *connector,
++                                               ply_pixel_buffer_rotation_t *rotation,
++                                               bool                        *tiled)
+ {
+         drmModePropertyPtr prop;
+-        int i, rotation;
++        int i;
++
++        *rotation = PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
++        *tiled = false;
+ 
+         for (i = 0; i < connector->count_props; i++) {
+                 prop = drmModeGetProperty (backend->device_fd, connector->props[i]);
+@@ -411,16 +416,15 @@ ply_renderer_connector_get_rotation (ply_renderer_backend_t *backend,
+                         continue;
+ 
+                 if ((prop->flags & DRM_MODE_PROP_ENUM) &&
+-                    strcmp (prop->name, "panel orientation") == 0) {
+-                         rotation = connector_orientation_prop_to_rotation (prop, connector->prop_values[i]);
+-                         drmModeFreeProperty (prop);
+-                         return rotation;
+-                }
++                    strcmp (prop->name, "panel orientation") == 0)
++                        *rotation = connector_orientation_prop_to_rotation (prop, connector->prop_values[i]);
++
++                if ((prop->flags & DRM_MODE_PROP_BLOB) &&
++                    strcmp (prop->name, "TILE") == 0)
++                        *tiled = true;
+ 
+                 drmModeFreeProperty (prop);
+         }
+-
+-        return PLY_PIXEL_BUFFER_ROTATE_UPRIGHT;
+ }
+ 
+ static bool
+@@ -449,18 +453,19 @@ ply_renderer_head_add_connector (ply_renderer_head_t *head,
+ }
+ 
+ static ply_renderer_head_t *
+-ply_renderer_head_new (ply_renderer_backend_t *backend,
+-                       drmModeConnector       *connector,
+-                       int                     connector_mode_index,
+-                       uint32_t                encoder_id,
+-                       uint32_t                controller_id,
+-                       uint32_t                console_buffer_id,
+-                       int                     gamma_size)
++ply_renderer_head_new (ply_renderer_backend_t     *backend,
++                       drmModeConnector           *connector,
++                       int                         connector_mode_index,
++                       uint32_t                    encoder_id,
++                       uint32_t                    controller_id,
++                       uint32_t                    console_buffer_id,
++                       int                         gamma_size,
++                       ply_pixel_buffer_rotation_t rotation)
+ {
+         ply_renderer_head_t *head;
+         drmModeModeInfo *mode;
+         unsigned int shift;
+-        int i, rotation;
++        int i;
+ 
+         head = calloc (1, sizeof(ply_renderer_head_t));
+ 
+@@ -498,7 +503,6 @@ ply_renderer_head_new (ply_renderer_backend_t *backend,
+         ply_renderer_head_add_connector (head, connector, connector_mode_index);
+         assert (ply_array_get_size (head->connector_ids) > 0);
+ 
+-        rotation = ply_renderer_connector_get_rotation (backend, connector);
+         head->pixel_buffer = ply_pixel_buffer_new_with_device_rotation (head->area.width, head->area.height, rotation);
+         ply_pixel_buffer_set_device_scale (head->pixel_buffer,
+                                            ply_get_device_scale (head->area.width,
+@@ -1057,6 +1061,8 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
+                 uint32_t console_buffer_id;
+                 int connector_mode_index;
+                 int gamma_size;
++                ply_pixel_buffer_rotation_t rotation;
++                bool tiled;
+ 
+                 connector = drmModeGetConnector (backend->device_fd,
+                                                  backend->resources->connectors[i]);
+@@ -1092,6 +1098,8 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
+ 
+                 controller_id = controller->crtc_id;
+ 
++                ply_renderer_connector_get_rotation_and_tiled (backend, connector, &rotation, &tiled);
++
+                 connector_mode_index = get_index_of_active_mode (backend, controller, connector);
+ 
+                 /* If we couldn't find the current active mode, fall back to the first available.
+@@ -1111,7 +1119,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
+                 if (head == NULL) {
+                         head = ply_renderer_head_new (backend, connector, connector_mode_index,
+                                                       encoder_id, controller_id,
+-                                                      console_buffer_id, gamma_size);
++                                                      console_buffer_id, gamma_size, rotation);
+ 
+                         ply_list_append_data (backend->heads, head);
+ 
+-- 
+2.19.0
+

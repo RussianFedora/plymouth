@@ -1,0 +1,123 @@
+From 2da4f7614e5aecb470b748752a3864d2ecae365a Mon Sep 17 00:00:00 2001
+From: Hans de Goede <hdegoede@redhat.com>
+Date: Tue, 2 Oct 2018 10:26:28 +0200
+Subject: [PATCH 3/5] drm: Reset LUT/gamma table before the first
+ drmModeSetCrtc call
+
+When we takeover the kms master from whatever process came before us the
+LUT table may be a mess making the graphics funky. So lets reset it once
+before our first drmModeSetCrtc call.
+
+Closes #59
+
+Signed-off-by: Hans de Goede <hdegoede@redhat.com>
+---
+ src/plugins/renderers/drm/plugin.c | 40 +++++++++++++++++++++++++++---
+ 1 file changed, 37 insertions(+), 3 deletions(-)
+
+diff --git a/src/plugins/renderers/drm/plugin.c b/src/plugins/renderers/drm/plugin.c
+index 1080590..6e6b520 100644
+--- a/src/plugins/renderers/drm/plugin.c
++++ b/src/plugins/renderers/drm/plugin.c
+@@ -84,6 +84,9 @@ struct _ply_renderer_head
+         uint32_t                encoder_id;
+         uint32_t                console_buffer_id;
+         uint32_t                scan_out_buffer_id;
++
++        int                     gamma_size;
++        uint16_t                *gamma;
+ };
+ 
+ struct _ply_renderer_input_source
+@@ -451,11 +454,13 @@ ply_renderer_head_new (ply_renderer_backend_t *backend,
+                        int                     connector_mode_index,
+                        uint32_t                encoder_id,
+                        uint32_t                controller_id,
+-                       uint32_t                console_buffer_id)
++                       uint32_t                console_buffer_id,
++                       int                     gamma_size)
+ {
+         ply_renderer_head_t *head;
+         drmModeModeInfo *mode;
+-        int rotation;
++        unsigned int shift;
++        int i, rotation;
+ 
+         head = calloc (1, sizeof(ply_renderer_head_t));
+ 
+@@ -476,6 +481,20 @@ ply_renderer_head_new (ply_renderer_backend_t *backend,
+         head->area.width = mode->hdisplay;
+         head->area.height = mode->vdisplay;
+ 
++        if (gamma_size) {
++                head->gamma_size = gamma_size;
++                head->gamma = malloc(gamma_size * 3 * sizeof(uint16_t));
++
++                /* gamma_size is always a power of 2 */
++                for (shift = 0; (gamma_size << shift) < (1 << 16); shift++);
++
++                for (i = 0; i < gamma_size; i++) {
++                        head->gamma[0 * gamma_size + i] = i << shift; /* red */
++                        head->gamma[1 * gamma_size + i] = i << shift; /* green */
++                        head->gamma[2 * gamma_size + i] = i << shift; /* blue */
++                }
++        }
++
+         ply_renderer_head_add_connector (head, connector, connector_mode_index);
+         assert (ply_array_get_size (head->connector_ids) > 0);
+ 
+@@ -502,6 +521,7 @@ ply_renderer_head_free (ply_renderer_head_t *head)
+ 
+         drmModeFreeConnector (head->connector0);
+         ply_array_free (head->connector_ids);
++        free (head->gamma);
+         free (head);
+ }
+ 
+@@ -601,6 +621,18 @@ ply_renderer_head_set_scan_out_buffer (ply_renderer_backend_t *backend,
+         ply_trace ("Setting scan out buffer of %ldx%ld head to our buffer",
+                    head->area.width, head->area.height);
+ 
++        /* Set gamma table, do this only once */
++        if (head->gamma) {
++                drmModeCrtcSetGamma (backend->device_fd,
++                                     head->controller_id,
++                                     head->gamma_size,
++                                     head->gamma + 0 * head->gamma_size,
++                                     head->gamma + 1 * head->gamma_size,
++                                     head->gamma + 2 * head->gamma_size);
++                free (head->gamma);
++                head->gamma = NULL;
++        }
++
+         /* Tell the controller to use the allocated scan out buffer on each connectors
+          */
+         if (drmModeSetCrtc (backend->device_fd, head->controller_id, buffer_id,
+@@ -1024,6 +1056,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
+                 uint32_t controller_id;
+                 uint32_t console_buffer_id;
+                 int connector_mode_index;
++                int gamma_size;
+ 
+                 connector = drmModeGetConnector (backend->device_fd,
+                                                  backend->resources->connectors[i]);
+@@ -1069,6 +1102,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
+                 }
+ 
+                 console_buffer_id = controller->buffer_id;
++                gamma_size = controller->gamma_size;
+                 drmModeFreeCrtc (controller);
+ 
+                 head = ply_hashtable_lookup (heads_by_controller_id,
+@@ -1077,7 +1111,7 @@ create_heads_for_active_connectors (ply_renderer_backend_t *backend)
+                 if (head == NULL) {
+                         head = ply_renderer_head_new (backend, connector, connector_mode_index,
+                                                       encoder_id, controller_id,
+-                                                      console_buffer_id);
++                                                      console_buffer_id, gamma_size);
+ 
+                         ply_list_append_data (backend->heads, head);
+ 
+-- 
+2.19.0
+

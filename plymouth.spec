@@ -16,7 +16,7 @@
 Summary: Graphical Boot Animation and Logger
 Name: plymouth
 Version: 0.9.3
-Release: 13%{?snapshot_rel}%{?dist}.R
+Release: 14%{?snapshot_rel}%{?dist}.R
 License: GPLv2+
 URL: http://www.freedesktop.org/wiki/Software/Plymouth
 
@@ -50,6 +50,14 @@ Patch13: 0004-drm-Remove-unnecessary-reset_scan_out_buffer_if_need.patch
 Patch14: 0005-main-Show-details-when-ESC-is-pressed-during-splash_.patch
 Patch15: 0006-main-Fix-getting-detailed-logs-from-systemd.patch
 Patch16: 0007-main-fix-build.patch
+
+# Patches from upstream git to set the mode to the preferred mode,
+# addressing: https://gitlab.freedesktop.org/plymouth/plymouth/issues/68
+Patch17: 0001-main-ensure-tty-is-closed-on-deactivate.patch
+Patch18: 0002-libply-Move-kernel-commandline-parsing-functions-to-.patch
+Patch19: 0003-drm-Reset-LUT-gamma-table-before-the-first-drmModeSe.patch
+Patch20: 0004-drm-Refactor-ply_renderer_connector_get_rotation.patch
+Patch21: 0005-drm-Use-preferred-mode-for-outputs-instead-of-curren.patch
 
 BuildRequires: gcc
 BuildRequires: pkgconfig(libdrm)
@@ -454,6 +462,11 @@ fi
 %files system-theme
 
 %changelog
+* Thu Oct 04 2018 Hans de Goede <jwrdegoede@fedoraproject.org> - 0.9.3-14.R
+- Add patches from upstream to fix the disk unlock screen sometimes having
+  a very low resolution on UEFI machines:
+  https://gitlab.freedesktop.org/plymouth/plymouth/issues/68
+
 * Wed Sep 12 2018 Arkady L. Shane <ashejn@russianfedora.pro> - 0.9.3-13.R
 - read from rfremix-release
 
